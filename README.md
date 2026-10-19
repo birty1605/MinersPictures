@@ -1,2 +1,0 @@
-# MinersPictures
-Upload your memories
