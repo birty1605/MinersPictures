@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -542,7 +543,7 @@
             <div class="tv-wrapper">
                 <div class="tv-screen" id="tvScreen">
                     <div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);">
-                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Connecting to Cloudinary server...</p>
+                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Connecting to Cloud server...</p>
                     </div>
                 </div>
                 <div class="tv-hud">
@@ -611,19 +612,23 @@
 
     <!-- Footer -->
     <footer>
-        &copy; 2026 The Miners Arms. All rights reserved. Cloudinary Synchronized Hub.
+        &copy; 2026 The Miners Arms. All rights reserved. Cloudinary & JSONBin Hub.
     </footer>
 
-    <!-- Cloudinary Folder Tagging Engine Script -->
+    <!-- Hybrid Integration Engine Script -->
     <script>
+        const JSONBIN_BIN_ID = '6ad61a48ffd5d1605378c604';
+        const JSONBIN_API_KEY = '$2a$10$btbJxcj9cYZC.CQ/SOMuA.I/CuBmXeloxgJgH6clH25r7uIfarJgu';
+        
         const CLOUDINARY_CLOUD_NAME = 'vju0scal';
         const CLOUDINARY_UPLOAD_PRESET = 'miners_preset';
 
-        let photosList = [];
+        let appData = { photos: [] };
         let selectedFileObject = null;
         let currentSlideIndex = 0;
         let slideshowInterval = null;
         let isAdminLoggedIn = false;
+        let lastKnownChecksum = '';
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => {
@@ -651,7 +656,7 @@
             const simulateAgingBtn = document.getElementById('simulateAgingBtn');
             if (simulateAgingBtn) simulateAgingBtn.addEventListener('click', simulateAging);
 
-            fetchAllPhotos();
+            loadDataFromBin();
         });
 
         function switchTab(tabId) {
@@ -664,7 +669,7 @@
             const targetBtn = document.querySelector(`.nav-tabs [data-tab="${tabId}"]`);
             if (targetBtn) targetBtn.classList.add('active');
 
-            fetchAllPhotos().then(() => {
+            loadDataFromBin().then(() => {
                 if (tabId === 'tv') {
                     initSlideshow();
                 } else if (tabId === 'admin' && isAdminLoggedIn) {
@@ -699,41 +704,60 @@
 
             const submitBtn = document.getElementById('submitBtn');
             if (submitBtn) {
-                submitBtn.innerText = 'Uploading to pending folder...';
+                submitBtn.innerText = 'Uploading to Cloudinary...';
                 submitBtn.disabled = true;
             }
 
             try {
+                // 1. Upload high-res image to Cloudinary
                 const formData = new FormData();
                 formData.append('file', selectedFileObject);
                 formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-                // Automatically assign to 'pending' folder and tag
-                formData.append('folder', 'miners_pending');
-                formData.append('tags', 'status_pending');
 
-                const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+                const cloudinaryRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
                     method: 'POST',
                     body: formData
                 });
 
-                if (!res.ok) throw new Error('Cloudinary upload failed.');
+                if (!cloudinaryRes.ok) throw new Error('Cloudinary upload failed.');
+
+                const cloudinaryData = await cloudinaryRes.json();
+                const imageUrl = cloudinaryData.secure_url;
+
+                if (submitBtn) submitBtn.innerText = 'Adding to review queue...';
+
+                // 2. Add photo record with 'pending' status to JSONBin
+                const newPhoto = {
+                    id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 5),
+                    dataUrl: imageUrl,
+                    status: 'pending',
+                    timestamp: Date.now()
+                };
+
+                await loadDataFromBin();
+                if (!appData.photos) appData.photos = [];
+                appData.photos.push(newPhoto);
+                
+                const success = await saveDataToBin();
 
                 if (submitBtn) {
                     submitBtn.innerText = '🚀 Submit Picture for Approval';
                     submitBtn.disabled = false;
                 }
 
-                showAlert('uploadAlert', 'Picture uploaded successfully! Awaiting admin review.', 'success');
-                const uploadForm = document.getElementById('uploadForm');
-                const previewBox = document.getElementById('previewBox');
-                if (uploadForm) uploadForm.reset();
-                if (previewBox) previewBox.style.display = 'none';
-                selectedFileObject = null;
-
-                fetchAllPhotos();
+                if (success) {
+                    showAlert('uploadAlert', 'Picture uploaded successfully! Awaiting admin review.', 'success');
+                    const uploadForm = document.getElementById('uploadForm');
+                    const previewBox = document.getElementById('previewBox');
+                    if (uploadForm) uploadForm.reset();
+                    if (previewBox) previewBox.style.display = 'none';
+                    selectedFileObject = null;
+                } else {
+                    showAlert('uploadAlert', 'Failed to save review record.', 'error');
+                }
             } catch (err) {
                 console.error('Upload error:', err);
-                showAlert('uploadAlert', 'Upload failed. Verify unsigned upload preset settings.', 'error');
+                showAlert('uploadAlert', 'Upload failed. Check Cloudinary upload preset.', 'error');
                 if (submitBtn) {
                     submitBtn.innerText = '🚀 Submit Picture for Approval';
                     submitBtn.disabled = false;
@@ -753,64 +777,105 @@
                 const dashboard = document.getElementById('adminDashboard');
                 if (loginCard) loginCard.style.display = 'none';
                 if (dashboard) dashboard.style.display = 'block';
-                fetchAllPhotos().then(() => renderAdminQueues());
+                loadDataFromBin().then(() => renderAdminQueues());
             } else {
                 showAlert('loginAlert', 'Invalid username or password.', 'error');
             }
         }
 
-        // --- Cloudinary Feed Fetching by Folder / Tag ---
-        async function fetchAllPhotos() {
+        // --- JSONBin Data Engine ---
+        async function loadDataFromBin() {
             try {
-                // Fetch using Cloudinary public JSON list for each folder/tag channel
-                const folders = ['miners_pending', 'miners_live', 'miners_archived'];
-                let allFetched = [];
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': JSONBIN_API_KEY },
+                    cache: 'no-store'
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.record) {
+                        const newPhotos = json.record.photos || [];
+                        const newChecksum = JSON.stringify(newPhotos);
+                        
+                        if (newChecksum !== lastKnownChecksum) {
+                            lastKnownChecksum = newChecksum;
+                            appData = json.record;
+                            if (!appData.photos) appData.photos = [];
 
-                for (let folder of folders) {
-                    try {
-                        const res = await fetch(`https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/list/${folder}.json`);
-                        if (res.ok) {
-                            const data = await res.json();
-                            if (data && data.resources) {
-                                const status = folder.replace('miners_', '');
-                                data.resources.forEach(img => {
-                                    allFetched.push({
-                                        public_id: img.public_id,
-                                        url: `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/v${img.version}/${img.public_id}.${img.format}`,
-                                        status: status, // 'pending', 'live', or 'archived'
-                                        timestamp: new Date(img.created_at || Date.now()).getTime()
-                                    });
-                                });
+                            if (isAdminLoggedIn) renderAdminQueues();
+                            const tvTab = document.getElementById('tab-tv');
+                            if (tvTab && tvTab.classList.contains('active')) {
+                                initSlideshow();
                             }
                         }
-                    } catch (e) {
-                        // Folder might be empty initially
                     }
                 }
-                photosList = allFetched;
-                if (isAdminLoggedIn) renderAdminQueues();
             } catch (err) {
-                console.warn('Feed fetch note:', err);
+                console.warn('JSONBin fetch note:', err);
             }
         }
 
-        // Note: Moving folders directly requires Cloudinary Signed API backend. 
-        // For static GitHub hosting, we manage status transitions cleanly via UI state & re-tagging or tracking.
-        window.updatePhotoStatus = async function(publicId, newStatus) {
-            alert(`Photo moved to ${newStatus}! (Make sure your Cloudinary preset allows multi-folder assignment or sync).`);
-            fetchAllPhotos();
-        };
+        async function saveDataToBin() {
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSONBIN_API_KEY
+                    },
+                    body: JSON.stringify(appData)
+                });
+                if (res.ok) {
+                    lastKnownChecksum = JSON.stringify(appData.photos);
+                    if (isAdminLoggedIn) renderAdminQueues();
+                    return true;
+                }
+            } catch (err) {
+                console.error('JSONBin save error:', err);
+            }
+            return false;
+        }
 
-        window.deletePhoto = async function(publicId) {
-            if (!confirm('Are you sure you want to delete this picture?')) return;
-            alert('Photo reference removed.');
-            fetchAllPhotos();
-        };
+        async function checkAutoArchive() {
+            const sixMonthsMs = 180 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            let updated = false;
+
+            appData.photos.forEach(p => {
+                if (p.status === 'live' && (now - p.timestamp > sixMonthsMs)) {
+                    p.status = 'archived';
+                    updated = true;
+                }
+            });
+
+            if (updated) await saveDataToBin();
+        }
 
         async function simulateAging() {
-            alert('Simulation applied: Live pictures marked for archive.');
-            fetchAllPhotos();
+            const sevenMonthsAgo = Date.now() - (200 * 24 * 60 * 60 * 1000);
+            await loadDataFromBin();
+            appData.photos.forEach(p => {
+                if (p.status === 'live') p.timestamp = sevenMonthsAgo;
+            });
+            await saveDataToBin();
+            alert('Simulation applied: All live pictures moved to archive (> 6 months old).');
         }
+
+        window.updatePhotoStatus = async function(id, newStatus) {
+            await loadDataFromBin();
+            const photo = appData.photos.find(p => p.id === id);
+            if (photo) {
+                photo.status = newStatus;
+                if (newStatus === 'live') photo.timestamp = Date.now();
+                await saveDataToBin();
+            }
+        };
+
+        window.deletePhoto = async function(id) {
+            if (!confirm('Are you sure you want to delete this picture?')) return;
+            await loadDataFromBin();
+            appData.photos = appData.photos.filter(p => p.id !== id);
+            await saveDataToBin();
+        };
 
         function renderAdminQueues() {
             const pendingQ = document.getElementById('pendingQueue');
@@ -822,29 +887,29 @@
             liveQ.innerHTML = '';
             archiveQ.innerHTML = '';
 
-            const pending = photosList.filter(p => p.status === 'pending');
-            const live = photosList.filter(p => p.status === 'live');
-            const archived = photosList.filter(p => p.status === 'archived');
+            const pending = appData.photos.filter(p => p.status === 'pending');
+            const live = appData.photos.filter(p => p.status === 'live');
+            const archived = appData.photos.filter(p => p.status === 'archived');
 
             document.getElementById('pendingCountBadge').innerText = `${pending.length} Pending`;
             document.getElementById('liveCountBadge').innerText = `${live.length} Live`;
             document.getElementById('archiveCountBadge').innerText = `${archived.length} Archived`;
 
             pendingQ.innerHTML = pending.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No pending pictures.</p>` :
-                pending.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-approve" onclick="updatePhotoStatus('${p.public_id}', 'live')">Approve</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.public_id}')">Reject</button>`)).join('');
+                pending.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-approve" onclick="updatePhotoStatus('${p.id}', 'live')">Approve</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Reject</button>`)).join('');
 
             liveQ.innerHTML = live.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No live pictures.</p>` :
-                live.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-reject" onclick="deletePhoto('${p.public_id}')">Delete</button>`)).join('');
+                live.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
 
             archiveQ.innerHTML = archived.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No archived pictures.</p>` :
-                archived.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-restore" onclick="updatePhotoStatus('${p.public_id}', 'live')">Restore</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.public_id}')">Delete</button>`)).join('');
+                archiveQ.innerHTML = archived.map ? archived.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-restore" onclick="updatePhotoStatus('${p.id}', 'live')">Restore</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('') : '';
         }
 
         function createPhotoCardHTML(photo, actionsHTML) {
             const dateStr = new Date(photo.timestamp).toLocaleDateString();
             return `
                 <div class="photo-card">
-                    <img src="${photo.url}" class="photo-thumb" alt="Upload">
+                    <img src="${photo.dataUrl}" class="photo-thumb" alt="Upload">
                     <div class="photo-info">
                         <div class="photo-meta">Added: ${dateStr}</div>
                         <div class="photo-actions">${actionsHTML}</div>
@@ -854,7 +919,7 @@
         }
 
         function initSlideshow() {
-            const livePhotos = photosList.filter(p => p.status === 'live');
+            const livePhotos = appData.photos.filter(p => p.status === 'live');
             const screen = document.getElementById('tvScreen');
             const counter = document.getElementById('tvCounter');
             if (!screen) return;
@@ -875,7 +940,7 @@
                 const shuffled = [...livePhotos].sort(() => Math.random() - 0.5);
                 screen.innerHTML = shuffled.map((p, idx) => `
                     <div class="tv-slide ${idx === 0 ? 'active' : ''}" data-index="${idx}">
-                        <img src="${p.url}" alt="Live slide">
+                        <img src="${p.dataUrl}" alt="Live slide">
                     </div>
                 `).join('');
 
@@ -914,12 +979,11 @@
             setTimeout(() => { el.style.display = 'none'; }, 6000);
         }
 
-        // Heartbeat poll every 5 seconds
+        // Live Poll Heartbeat (every 3 seconds)
         setInterval(() => {
-            fetchAllPhotos();
-        }, 5000);
+            loadDataFromBin();
+            checkAutoArchive();
+        }, 3000);
     </script>
 </body>
 </html>
-
-```
