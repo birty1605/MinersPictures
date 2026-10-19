@@ -614,15 +614,14 @@
         &copy; 2026 The Miners Arms. All rights reserved. Live Cloud Picture Hub.
     </footer>
 
-    <!-- Cloudinary & JSONBin Integration Script -->
+    <!-- Complete Client & Cloud Integration Script -->
     <script>
         // Configuration
         const JSONBIN_BIN_ID = '6ad61a48ffd5d1605378c604';
         const JSONBIN_API_KEY = '$2a$10$btbJxcj9cYZC.CQ/SOMuA.I/CuBmXeloxgJgH6clH25r7uIfarJgu';
         
         const CLOUDINARY_CLOUD_NAME = 'vju0scal';
-        // Note: Make sure an unsigned upload preset named 'miners_preset' is created in your Cloudinary Dashboard Settings -> Upload
-        const CLOUDINARY_UPLOAD_PRESET = 'miners_preset'; 
+        const CLOUDINARY_UPLOAD_PRESET = 'miners_preset';
 
         let appData = { photos: [] };
         let selectedFileObject = null;
@@ -723,7 +722,7 @@
                 });
 
                 if (!cloudinaryRes.ok) {
-                    throw new Error('Cloudinary upload failed. Check upload preset.');
+                    throw new Error('Cloudinary upload failed. Check preset configuration.');
                 }
 
                 const cloudinaryData = await cloudinaryRes.json();
@@ -762,7 +761,7 @@
                 }
             } catch (err) {
                 console.error('Upload process error:', err);
-                showAlert('uploadAlert', 'Upload failed. Check Cloudinary upload preset name.', 'error');
+                showAlert('uploadAlert', 'Upload failed. Verify Cloudinary upload preset name is unsigned.', 'error');
                 if (submitBtn) {
                     submitBtn.innerText = '🚀 Submit Picture for Approval';
                     submitBtn.disabled = false;
