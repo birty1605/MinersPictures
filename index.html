@@ -542,7 +542,7 @@
             <div class="tv-wrapper">
                 <div class="tv-screen" id="tvScreen">
                     <div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);">
-                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Loading live pictures...</p>
+                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Connecting to JSONBin cloud server...</p>
                     </div>
                 </div>
                 <div class="tv-hud">
@@ -614,10 +614,10 @@
         &copy; 2026 The Miners Arms. All rights reserved. Live Cloud Picture Hub.
     </footer>
 
-    <!-- Script Application Logic with Global Cross-Device Cloud Sync -->
+    <!-- Script Application Logic with Configured JSONBin REST API -->
     <script>
-        // Using high-speed decentralized cloud sync protocol engineered for static web hosting
-        const SYNC_STORAGE_KEY = 'miners_arms_global_cloud_v3';
+        const BIN_ID = '6ad61a48ffd5d1605378c604';
+        const API_KEY = '$2a$10$btbJxcj9cYZC.CQ/SOMuA.I/CuBmXeloxgJgH6clH25r7uIfarJgu';
         
         let appData = { photos: [] };
         let selectedFileBase64 = null;
@@ -643,7 +643,7 @@
             }
         };
 
-        // Image Preview Handler with aggressive compression
+        // Image Preview Handler with compression
         window.previewFile = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -657,7 +657,7 @@
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
-                    const maxDim = 800; // optimized for instant web transfer
+                    const maxDim = 800; // optimized for cloud database storage
 
                     if (width > height && width > maxDim) {
                         height *= maxDim / width;
@@ -670,7 +670,7 @@
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.75);
 
                     document.getElementById('imagePreview').src = selectedFileBase64;
                     document.getElementById('previewBox').style.display = 'block';
@@ -685,7 +685,7 @@
             if (!selectedFileBase64) return;
 
             const submitBtn = document.getElementById('submitBtn');
-            submitBtn.innerText = 'Uploading Picture...';
+            submitBtn.innerText = 'Uploading to Cloud Bin...';
             submitBtn.disabled = true;
 
             const newPhoto = {
@@ -695,17 +695,21 @@
                 timestamp: Date.now()
             };
 
-            await loadCloudData();
+            await loadDataFromBin();
             appData.photos.push(newPhoto);
-            await saveCloudData();
+            const success = await saveDataToBin();
 
             submitBtn.innerText = '🚀 Submit Picture for Approval';
             submitBtn.disabled = false;
 
-            showAlert('uploadAlert', 'Picture successfully uploaded! Awaiting admin review.', 'success');
-            document.getElementById('uploadForm').reset();
-            document.getElementById('previewBox').style.display = 'none';
-            selectedFileBase64 = null;
+            if (success) {
+                showAlert('uploadAlert', 'Picture successfully uploaded! Awaiting admin review.', 'success');
+                document.getElementById('uploadForm').reset();
+                document.getElementById('previewBox').style.display = 'none';
+                selectedFileBase64 = null;
+            } else {
+                showAlert('uploadAlert', 'Upload failed. Please check your internet connection.', 'error');
+            }
         };
 
         // Admin Login handler
@@ -718,64 +722,50 @@
                 isAdminLoggedIn = true;
                 document.getElementById('adminLoginCard').style.display = 'none';
                 document.getElementById('adminDashboard').style.display = 'block';
-                loadCloudData().then(() => renderAdminQueues());
+                loadDataFromBin().then(() => renderAdminQueues());
             } else {
                 showAlert('loginAlert', 'Invalid username or password.', 'error');
             }
         };
 
-        // Decentralized Cloud & Local Sync Engine
-        async function loadCloudData() {
+        // JSONBin Cloud API Functions
+        async function loadDataFromBin() {
             try {
-                // Read from global shared cross-device storage
-                const cloudJson = localStorage.getItem(SYNC_STORAGE_KEY);
-                if (cloudJson) {
-                    appData = JSON.parse(cloudJson);
-                }
-            } catch (err) {
-                console.warn('Sync load note:', err);
-            }
-        }
-
-        async function saveCloudData() {
-            try {
-                localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify(appData));
-                
-                // Broadcast sync event to all open tabs and active connected devices
-                if (window.BroadcastChannel) {
-                    const bc = new BroadcastChannel('miners_live_sync');
-                    bc.postMessage({ type: 'SYNC_UPDATE', data: appData });
-                }
-
-                if (isAdminLoggedIn) renderAdminQueues();
-            } catch (err) {
-                console.error('Save error:', err);
-            }
-        }
-
-        // Real-time Cross-Device Listener
-        if (window.BroadcastChannel) {
-            const bcListener = new BroadcastChannel('miners_live_sync');
-            bcListener.onmessage = function(event) {
-                if (event.data && event.data.type === 'SYNC_UPDATE') {
-                    appData = event.data.data;
-                    if (isAdminLoggedIn) renderAdminQueues();
-                    if (document.getElementById('tab-tv').classList.contains('active')) {
-                        initSlideshow();
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY },
+                    cache: 'no-store'
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.record) {
+                        appData = json.record;
+                        if (!appData.photos) appData.photos = [];
                     }
                 }
-            };
+            } catch (err) {
+                console.warn('Cloud fetch note:', err);
+            }
         }
 
-        window.addEventListener('storage', function(e) {
-            if (e.key === SYNC_STORAGE_KEY && e.newValue) {
-                appData = JSON.parse(e.newValue);
-                if (isAdminLoggedIn) renderAdminQueues();
-                if (document.getElementById('tab-tv').classList.contains('active')) {
-                    initSlideshow();
+        async function saveDataToBin() {
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify(appData)
+                });
+                if (res.ok) {
+                    if (isAdminLoggedIn) renderAdminQueues();
+                    return true;
                 }
+            } catch (err) {
+                console.error('Cloud save error:', err);
             }
-        });
+            return false;
+        }
 
         // 6-Month Auto Archive Check (180 Days)
         async function checkAutoArchive() {
@@ -784,162 +774,3 @@
             let updated = false;
 
             appData.photos.forEach(p => {
-                if (p.status === 'live' && (now - p.timestamp > sixMonthsMs)) {
-                    p.status = 'archived';
-                    updated = true;
-                }
-            });
-
-            if (updated) {
-                await saveCloudData();
-            }
-        }
-
-        window.simulateAging = async function() {
-            const sevenMonthsAgo = Date.now() - (200 * 24 * 60 * 60 * 1000);
-            await loadCloudData();
-            appData.photos.forEach(p => {
-                if (p.status === 'live') {
-                    p.timestamp = sevenMonthsAgo;
-                }
-            });
-            await saveCloudData();
-            alert('Simulation applied: All live pictures moved to archive (> 6 months old).');
-        };
-
-        window.updatePhotoStatus = async function(id, newStatus) {
-            await loadCloudData();
-            const photo = appData.photos.find(p => p.id === id);
-            if (photo) {
-                photo.status = newStatus;
-                if (newStatus === 'live') photo.timestamp = Date.now();
-                await saveCloudData();
-            }
-        };
-
-        window.deletePhoto = async function(id) {
-            if (!confirm('Are you sure you want to delete this picture?')) return;
-            await loadCloudData();
-            appData.photos = appData.photos.filter(p => p.id !== id);
-            await saveCloudData();
-        };
-
-        window.renderAdminQueues = function() {
-            const pendingQ = document.getElementById('pendingQueue');
-            const liveQ = document.getElementById('liveQueue');
-            const archiveQ = document.getElementById('archiveQueue');
-            if (!pendingQ) return;
-
-            pendingQ.innerHTML = '';
-            liveQ.innerHTML = '';
-            archiveQ.innerHTML = '';
-
-            const pending = appData.photos.filter(p => p.status === 'pending');
-            const live = appData.photos.filter(p => p.status === 'live');
-            const archived = appData.photos.filter(p => p.status === 'archived');
-
-            document.getElementById('pendingCountBadge').innerText = `${pending.length} Pending`;
-            document.getElementById('liveCountBadge').innerText = `${live.length} Live`;
-            document.getElementById('archiveCountBadge').innerText = `${archived.length} Archived`;
-
-            pendingQ.innerHTML = pending.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No pending pictures.</p>` :
-                pending.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-approve" onclick="updatePhotoStatus('${p.id}', 'live')">Approve</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Reject</button>`)).join('');
-
-            liveQ.innerHTML = live.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No live pictures.</p>` :
-                live.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
-
-            archiveQ.innerHTML = archived.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No archived pictures.</p>` :
-                archived.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-restore" onclick="updatePhotoStatus('${p.id}', 'live')">Restore to Live</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
-        };
-
-        function createPhotoCardHTML(photo, actionsHTML) {
-            const dateStr = new Date(photo.timestamp).toLocaleDateString();
-            return `
-                <div class="photo-card">
-                    <img src="${photo.dataUrl}" class="photo-thumb" alt="Upload">
-                    <div class="photo-info">
-                        <div class="photo-meta">Added: ${dateStr}</div>
-                        <div class="photo-actions">${actionsHTML}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // TV Slideshow Logic (Shuffles every 5 seconds)
-        window.initSlideshow = async function() {
-            await loadCloudData();
-            const livePhotos = appData.photos.filter(p => p.status === 'live');
-            const screen = document.getElementById('tvScreen');
-            const counter = document.getElementById('tvCounter');
-            if (!screen) return;
-
-            if (livePhotos.length === 0) {
-                screen.innerHTML = `
-                    <div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);">
-                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">No live pictures available yet.</p>
-                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Upload and approve pictures to begin slideshow.</p>
-                    </div>
-                `;
-                counter.innerText = `0 / 0 Slides`;
-                return;
-            }
-
-            const shuffled = [...livePhotos].sort(() => Math.random() - 0.5);
-            screen.innerHTML = shuffled.map((p, idx) => `
-                <div class="tv-slide ${idx === 0 ? 'active' : ''}" data-index="${idx}">
-                    <img src="${p.dataUrl}" alt="Live slide">
-                </div>
-            `).join('');
-
-            if (slideshowInterval) clearInterval(slideshowInterval);
-
-            currentSlideIndex = 0;
-            counter.innerText = `Slide 1 / ${shuffled.length}`;
-
-            slideshowInterval = setInterval(() => {
-                const slides = screen.querySelectorAll('.tv-slide');
-                if (slides.length <= 1) return;
-
-                slides[currentSlideIndex].classList.remove('active');
-                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
-                slides[currentSlideIndex].classList.add('active');
-                counter.innerText = `Slide ${currentSlideIndex + 1} / ${slides.length}`;
-            }, 5000);
-        };
-
-        window.enterFullscreen = function() {
-            const tvEl = document.querySelector('.tv-wrapper');
-            if (tvEl.requestFullscreen) {
-                tvEl.requestFullscreen();
-            } else if (tvEl.webkitRequestFullscreen) {
-                tvEl.webkitRequestFullscreen();
-            }
-        };
-
-        function showAlert(elementId, message, type) {
-            const el = document.getElementById(elementId);
-            if (!el) return;
-            el.innerText = message;
-            el.className = `alert-msg alert-${type}`;
-            el.style.display = 'block';
-            setTimeout(() => { el.style.display = 'none'; }, 6000);
-        }
-
-        // Automatic synchronization heartbeat every 2 seconds
-        setInterval(async () => {
-            const prevCount = appData.photos.length;
-            await loadCloudData();
-            if (appData.photos.length !== prevCount) {
-                if (isAdminLoggedIn) renderAdminQueues();
-                if (document.getElementById('tab-tv').classList.contains('active')) {
-                    initSlideshow();
-                }
-            }
-            checkAutoArchive();
-        }, 2000);
-
-        // Initial load
-        loadCloudData();
-    </script>
-</body>
-</html>
