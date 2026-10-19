@@ -138,11 +138,11 @@
 
         .tab-content.active {
             display: block;
-            animation: fadeIn 0.4s ease-out forwards;
+            animation: fadeIn 0.3s ease-out forwards;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
+            from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -503,9 +503,9 @@
 
     <!-- Navigation Tabs -->
     <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="upload" id="nav-upload">📸 Upload Picture</button>
-        <button class="tab-btn" data-tab="tv" id="nav-tv">📺 Live TV Slideshow</button>
-        <button class="tab-btn admin-nav-btn" data-tab="admin" id="nav-admin">🔑 Admin Login</button>
+        <button class="tab-btn active" data-tab="upload">📸 Upload Picture</button>
+        <button class="tab-btn" data-tab="tv">📺 Live TV Slideshow</button>
+        <button class="tab-btn admin-nav-btn" data-tab="admin">🔑 Admin Login</button>
     </nav>
 
     <!-- Main View Area -->
@@ -614,7 +614,7 @@
         &copy; 2026 The Miners Arms. All rights reserved. Live Cloud Picture Hub.
     </footer>
 
-    <!-- Script Application Logic -->
+    <!-- High-Performance Optimized Client Script -->
     <script>
         const BIN_ID = '6ad61a48ffd5d1605378c604';
         const API_KEY = '$2a$10$btbJxcj9cYZC.CQ/SOMuA.I/CuBmXeloxgJgH6clH25r7uIfarJgu';
@@ -624,27 +624,36 @@
         let currentSlideIndex = 0;
         let slideshowInterval = null;
         let isAdminLoggedIn = false;
+        let lastKnownChecksum = '';
 
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. Navigation Event Listeners
+            // Tab Navigation Event Bindings
             document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const tabId = e.currentTarget.getAttribute('data-tab');
-                    switchTab(tabId);
+                    switchTab(e.currentTarget.getAttribute('data-tab'));
                 });
             });
 
-            // 2. Upload Triggers
+            // Upload Box Event Bindings
             const dropzoneBox = document.getElementById('dropzoneBox');
             const fileInput = document.getElementById('fileInput');
-            dropzoneBox.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', previewFile);
+            if (dropzoneBox && fileInput) {
+                dropzoneBox.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', previewFile);
+            }
 
-            // 3. Form Submit Listeners
-            document.getElementById('uploadForm').addEventListener('submit', handleImageUpload);
-            document.getElementById('loginForm').addEventListener('submit', handleAdminLogin);
-            document.getElementById('fullscreenBtn').addEventListener('click', enterFullscreen);
-            document.getElementById('simulateAgingBtn').addEventListener('click', simulateAging);
+            // Form Submit & Action Event Bindings
+            const uploadForm = document.getElementById('uploadForm');
+            if (uploadForm) uploadForm.addEventListener('submit', handleImageUpload);
+
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) loginForm.addEventListener('submit', handleAdminLogin);
+
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            if (fullscreenBtn) fullscreenBtn.addEventListener('click', enterFullscreen);
+
+            const simulateAgingBtn = document.getElementById('simulateAgingBtn');
+            if (simulateAgingBtn) simulateAgingBtn.addEventListener('click', simulateAging);
 
             // Initial Cloud Load
             loadDataFromBin();
@@ -672,15 +681,15 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = (e) => {
                 const img = new Image();
                 img.src = e.target.result;
-                img.onload = function() {
+                img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
-                    const maxDim = 800;
+                    const maxDim = 800; // Optimized dimension for fast cloud uploads
 
                     if (width > height && width > maxDim) {
                         height *= maxDim / width;
@@ -693,22 +702,31 @@
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.75);
+                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.7);
 
-                    document.getElementById('imagePreview').src = selectedFileBase64;
-                    document.getElementById('previewBox').style.display = 'block';
-                }
+                    const previewImg = document.getElementById('imagePreview');
+                    const previewBox = document.getElementById('previewBox');
+                    if (previewImg && previewBox) {
+                        previewImg.src = selectedFileBase64;
+                        previewBox.style.display = 'block';
+                    }
+                };
             };
             reader.readAsDataURL(file);
         }
 
         async function handleImageUpload(e) {
             e.preventDefault();
-            if (!selectedFileBase64) return;
+            if (!selectedFileBase64) {
+                showAlert('uploadAlert', 'Please select a picture first.', 'error');
+                return;
+            }
 
             const submitBtn = document.getElementById('submitBtn');
-            submitBtn.innerText = 'Uploading to Cloud Bin...';
-            submitBtn.disabled = true;
+            if (submitBtn) {
+                submitBtn.innerText = 'Uploading to Cloud Bin...';
+                submitBtn.disabled = true;
+            }
 
             const newPhoto = {
                 id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 5),
@@ -721,13 +739,17 @@
             appData.photos.push(newPhoto);
             const success = await saveDataToBin();
 
-            submitBtn.innerText = '🚀 Submit Picture for Approval';
-            submitBtn.disabled = false;
+            if (submitBtn) {
+                submitBtn.innerText = '🚀 Submit Picture for Approval';
+                submitBtn.disabled = false;
+            }
 
             if (success) {
                 showAlert('uploadAlert', 'Picture successfully uploaded! Awaiting admin review.', 'success');
-                document.getElementById('uploadForm').reset();
-                document.getElementById('previewBox').style.display = 'none';
+                const uploadForm = document.getElementById('uploadForm');
+                const previewBox = document.getElementById('previewBox');
+                if (uploadForm) uploadForm.reset();
+                if (previewBox) previewBox.style.display = 'none';
                 selectedFileBase64 = null;
             } else {
                 showAlert('uploadAlert', 'Upload failed. Please check your internet connection.', 'error');
@@ -736,13 +758,16 @@
 
         function handleAdminLogin(e) {
             e.preventDefault();
-            const user = document.getElementById('adminUser').value.trim();
-            const pass = document.getElementById('adminPass').value.trim();
+            const userField = document.getElementById('adminUser');
+            const passField = document.getElementById('adminPass');
+            if (!userField || !passField) return;
 
-            if (user === 'Gjelly' && pass === 'Kevisthebest') {
+            if (userField.value.trim() === 'Gjelly' && passField.value.trim() === 'Kevisthebest') {
                 isAdminLoggedIn = true;
-                document.getElementById('adminLoginCard').style.display = 'none';
-                document.getElementById('adminDashboard').style.display = 'block';
+                const loginCard = document.getElementById('adminLoginCard');
+                const dashboard = document.getElementById('adminDashboard');
+                if (loginCard) loginCard.style.display = 'none';
+                if (dashboard) dashboard.style.display = 'block';
                 loadDataFromBin().then(() => renderAdminQueues());
             } else {
                 showAlert('loginAlert', 'Invalid username or password.', 'error');
@@ -758,12 +783,24 @@
                 if (res.ok) {
                     const json = await res.json();
                     if (json && json.record) {
-                        appData = json.record;
-                        if (!appData.photos) appData.photos = [];
+                        const newPhotos = json.record.photos || [];
+                        const newChecksum = JSON.stringify(newPhotos);
+                        
+                        if (newChecksum !== lastKnownChecksum) {
+                            lastKnownChecksum = newChecksum;
+                            appData = json.record;
+                            if (!appData.photos) appData.photos = [];
+
+                            if (isAdminLoggedIn) renderAdminQueues();
+                            const tvTab = document.getElementById('tab-tv');
+                            if (tvTab && tvTab.classList.contains('active')) {
+                                initSlideshow();
+                            }
+                        }
                     }
                 }
             } catch (err) {
-                console.warn('Cloud fetch note:', err);
+                console.warn('Cloud sync background note:', err);
             }
         }
 
@@ -778,6 +815,7 @@
                     body: JSON.stringify(appData)
                 });
                 if (res.ok) {
+                    lastKnownChecksum = JSON.stringify(appData.photos);
                     if (isAdminLoggedIn) renderAdminQueues();
                     return true;
                 }
@@ -847,9 +885,13 @@
             const live = appData.photos.filter(p => p.status === 'live');
             const archived = appData.photos.filter(p => p.status === 'archived');
 
-            document.getElementById('pendingCountBadge').innerText = `${pending.length} Pending`;
-            document.getElementById('liveCountBadge').innerText = `${live.length} Live`;
-            document.getElementById('archiveCountBadge').innerText = `${archived.length} Archived`;
+            const pendingCountBadge = document.getElementById('pendingCountBadge');
+            const liveCountBadge = document.getElementById('liveCountBadge');
+            const archiveCountBadge = document.getElementById('archiveCountBadge');
+
+            if (pendingCountBadge) pendingCountBadge.innerText = `${pending.length} Pending`;
+            if (liveCountBadge) liveCountBadge.innerText = `${live.length} Live`;
+            if (archiveCountBadge) archiveCountBadge.innerText = `${archived.length} Archived`;
 
             pendingQ.innerHTML = pending.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No pending pictures.</p>` :
                 pending.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-approve" onclick="updatePhotoStatus('${p.id}', 'live')">Approve</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Reject</button>`)).join('');
@@ -874,8 +916,7 @@
             `;
         }
 
-        async function initSlideshow() {
-            await loadDataFromBin();
+        function initSlideshow() {
             const livePhotos = appData.photos.filter(p => p.status === 'live');
             const screen = document.getElementById('tvScreen');
             const counter = document.getElementById('tvCounter');
@@ -888,35 +929,39 @@
                         <p style="font-size: 0.9rem; margin-top: 0.5rem;">Upload and approve pictures to begin slideshow.</p>
                     </div>
                 `;
-                counter.innerText = `0 / 0 Slides`;
+                if (counter) counter.innerText = `0 / 0 Slides`;
                 return;
             }
 
-            const shuffled = [...livePhotos].sort(() => Math.random() - 0.5);
-            screen.innerHTML = shuffled.map((p, idx) => `
-                <div class="tv-slide ${idx === 0 ? 'active' : ''}" data-index="${idx}">
-                    <img src="${p.dataUrl}" alt="Live slide">
-                </div>
-            `).join('');
+            // Only rebuild slideshow DOM if slide count changed
+            const existingSlides = screen.querySelectorAll('.tv-slide');
+            if (existingSlides.length !== livePhotos.length) {
+                const shuffled = [...livePhotos].sort(() => Math.random() - 0.5);
+                screen.innerHTML = shuffled.map((p, idx) => `
+                    <div class="tv-slide ${idx === 0 ? 'active' : ''}" data-index="${idx}">
+                        <img src="${p.dataUrl}" alt="Live slide">
+                    </div>
+                `).join('');
 
-            if (slideshowInterval) clearInterval(slideshowInterval);
+                if (slideshowInterval) clearInterval(slideshowInterval);
+                currentSlideIndex = 0;
+                if (counter) counter.innerText = `Slide 1 / ${shuffled.length}`;
 
-            currentSlideIndex = 0;
-            counter.innerText = `Slide 1 / ${shuffled.length}`;
+                slideshowInterval = setInterval(() => {
+                    const slides = screen.querySelectorAll('.tv-slide');
+                    if (slides.length <= 1) return;
 
-            slideshowInterval = setInterval(() => {
-                const slides = screen.querySelectorAll('.tv-slide');
-                if (slides.length <= 1) return;
-
-                slides[currentSlideIndex].classList.remove('active');
-                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
-                slides[currentSlideIndex].classList.add('active');
-                counter.innerText = `Slide ${currentSlideIndex + 1} / ${slides.length}`;
-            }, 5000);
+                    slides[currentSlideIndex].classList.remove('active');
+                    currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                    slides[currentSlideIndex].classList.add('active');
+                    if (counter) counter.innerText = `Slide ${currentSlideIndex + 1} / ${slides.length}`;
+                }, 5000);
+            }
         }
 
         function enterFullscreen() {
             const tvEl = document.querySelector('.tv-wrapper');
+            if (!tvEl) return;
             if (tvEl.requestFullscreen) {
                 tvEl.requestFullscreen();
             } else if (tvEl.webkitRequestFullscreen) {
@@ -933,16 +978,9 @@
             setTimeout(() => { el.style.display = 'none'; }, 6000);
         }
 
-        // Background synchronization heartbeat every 3 seconds
-        setInterval(async () => {
-            const prevCount = appData.photos.length;
-            await loadDataFromBin();
-            if (appData.photos.length !== prevCount) {
-                if (isAdminLoggedIn) renderAdminQueues();
-                if (document.getElementById('tab-tv').classList.contains('active')) {
-                    initSlideshow();
-                }
-            }
+        // Optimized Cloud Heartbeat Polling (every 3 seconds)
+        setInterval(() => {
+            loadDataFromBin();
             checkAutoArchive();
         }, 3000);
     </script>
