@@ -542,7 +542,7 @@
             <div class="tv-wrapper">
                 <div class="tv-screen" id="tvScreen">
                     <div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);">
-                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Loading live pictures...</p>
+                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Loading live pictures from online server...</p>
                     </div>
                 </div>
                 <div class="tv-hud">
@@ -614,10 +614,10 @@
         &copy; 2026 The Miners Arms. All rights reserved. Live Cloud Picture Hub.
     </footer>
 
-    <!-- Script Application Logic with Global Cloud API & Local Fallback Sync -->
+    <!-- Script Application Logic with True Online Cloud API Sync -->
     <script>
-        // Unique Cloud Storage Key for The Miners Arms
-        const STORAGE_KEY = 'miners_arms_cloud_db_v2';
+        // Dedicated Public Cloud Bin Endpoint (Auto-Synced across GitHub Pages)
+        const CLOUD_API_URL = 'https://api.npoint.io/46f48483b8b9d3000b0e';
         
         let appData = { photos: [] };
         let selectedFileBase64 = null;
@@ -657,7 +657,7 @@
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
-                    const maxDim = 1000; // optimized size for fast cloud sync
+                    const maxDim = 900; // optimized for instant online transfers
 
                     if (width > height && width > maxDim) {
                         height *= maxDim / width;
@@ -685,7 +685,7 @@
             if (!selectedFileBase64) return;
 
             const submitBtn = document.getElementById('submitBtn');
-            submitBtn.innerText = 'Uploading to Cloud...';
+            submitBtn.innerText = 'Uploading to Online Server...';
             submitBtn.disabled = true;
 
             const newPhoto = {
@@ -695,17 +695,21 @@
                 timestamp: Date.now()
             };
 
-            await loadData();
+            await loadDataFromCloud();
             appData.photos.push(newPhoto);
-            await saveData();
+            const success = await saveDataToCloud();
 
             submitBtn.innerText = '🚀 Submit Picture for Approval';
             submitBtn.disabled = false;
 
-            showAlert('uploadAlert', 'Picture successfully uploaded and sent for admin review!', 'success');
-            document.getElementById('uploadForm').reset();
-            document.getElementById('previewBox').style.display = 'none';
-            selectedFileBase64 = null;
+            if (success) {
+                showAlert('uploadAlert', 'Picture uploaded online! Awaiting admin approval.', 'success');
+                document.getElementById('uploadForm').reset();
+                document.getElementById('previewBox').style.display = 'none';
+                selectedFileBase64 = null;
+            } else {
+                showAlert('uploadAlert', 'Upload error. Please check your network connection.', 'error');
+            }
         };
 
         // Admin Login handler
@@ -718,67 +722,43 @@
                 isAdminLoggedIn = true;
                 document.getElementById('adminLoginCard').style.display = 'none';
                 document.getElementById('adminDashboard').style.display = 'block';
-                loadData().then(() => renderAdminQueues());
+                loadDataFromCloud().then(() => renderAdminQueues());
             } else {
                 showAlert('loginAlert', 'Invalid username or password.', 'error');
             }
         };
 
-        // Robust Cloud Storage Sync (Using BroadcastChannel + LocalStorage + Pastebin Cloud Bridge)
-        async function loadData() {
+        // Cloud Server Fetch & Save API
+        async function loadDataFromCloud() {
             try {
-                // Check cross-tab/cross-device shared storage
-                const cloudData = localStorage.getItem(STORAGE_KEY);
-                if (cloudData) {
-                    appData = JSON.parse(cloudData);
-                } else {
-                    appData = { photos: [] };
-                }
-            } catch (err) {
-                console.warn('Storage read warning:', err);
-            }
-        }
-
-        async function saveData() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-                
-                // Trigger cross-window and cross-device sync event
-                if (window.BroadcastChannel) {
-                    const bc = new BroadcastChannel('miners_sync_channel');
-                    bc.postMessage({ type: 'UPDATE', data: appData });
-                }
-
-                if (isAdminLoggedIn) renderAdminQueues();
-            } catch (err) {
-                console.error('Storage save error:', err);
-            }
-        }
-
-        // Listen for real-time updates from other tabs or devices
-        if (window.BroadcastChannel) {
-            const listenerChannel = new BroadcastChannel('miners_sync_channel');
-            listenerChannel.onmessage = function(event) {
-                if (event.data && event.data.type === 'UPDATE') {
-                    appData = event.data.data;
-                    if (isAdminLoggedIn) renderAdminQueues();
-                    if (document.getElementById('tab-tv').classList.contains('active')) {
-                        initSlideshow();
+                const res = await fetch(CLOUD_API_URL, { cache: 'no-store' });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json && json.photos) {
+                        appData = json;
                     }
                 }
-            };
+            } catch (err) {
+                console.warn('Cloud sync offline fallback:', err);
+            }
         }
 
-        // Also listen to storage events across windows
-        window.addEventListener('storage', function(e) {
-            if (e.key === STORAGE_KEY && e.newValue) {
-                appData = JSON.parse(e.newValue);
-                if (isAdminLoggedIn) renderAdminQueues();
-                if (document.getElementById('tab-tv').classList.contains('active')) {
-                    initSlideshow();
+        async function saveDataToCloud() {
+            try {
+                const res = await fetch(CLOUD_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(appData)
+                });
+                if (res.ok) {
+                    if (isAdminLoggedIn) renderAdminQueues();
+                    return true;
                 }
+            } catch (err) {
+                console.error('Cloud save error:', err);
             }
-        });
+            return false;
+        }
 
         // 6-Month Auto Archive Check (180 Days)
         async function checkAutoArchive() {
@@ -794,37 +774,37 @@
             });
 
             if (updated) {
-                await saveData();
+                await saveDataToCloud();
             }
         }
 
         window.simulateAging = async function() {
             const sevenMonthsAgo = Date.now() - (200 * 24 * 60 * 60 * 1000);
-            await loadData();
+            await loadDataFromCloud();
             appData.photos.forEach(p => {
                 if (p.status === 'live') {
                     p.timestamp = sevenMonthsAgo;
                 }
             });
-            await saveData();
+            await saveDataToCloud();
             alert('Simulation applied: All live pictures moved to archive (> 6 months old).');
         };
 
         window.updatePhotoStatus = async function(id, newStatus) {
-            await loadData();
+            await loadDataFromCloud();
             const photo = appData.photos.find(p => p.id === id);
             if (photo) {
                 photo.status = newStatus;
                 if (newStatus === 'live') photo.timestamp = Date.now();
-                await saveData();
+                await saveDataToCloud();
             }
         };
 
         window.deletePhoto = async function(id) {
             if (!confirm('Are you sure you want to delete this picture?')) return;
-            await loadData();
+            await loadDataFromCloud();
             appData.photos = appData.photos.filter(p => p.id !== id);
-            await saveData();
+            await saveDataToCloud();
         };
 
         window.renderAdminQueues = function() {
@@ -870,7 +850,7 @@
 
         // TV Slideshow Logic (Shuffles every 5 seconds)
         window.initSlideshow = async function() {
-            await loadData();
+            await loadDataFromCloud();
             const livePhotos = appData.photos.filter(p => p.status === 'live');
             const screen = document.getElementById('tvScreen');
             const counter = document.getElementById('tvCounter');
@@ -928,15 +908,21 @@
             setTimeout(() => { el.style.display = 'none'; }, 6000);
         }
 
-        // Periodic Sync Check
+        // Real-time polling every 3 seconds to auto-update across mobile & laptop
         setInterval(async () => {
-            await loadData();
-            if (isAdminLoggedIn) renderAdminQueues();
+            const prevCount = appData.photos.length;
+            await loadDataFromCloud();
+            if (appData.photos.length !== prevCount) {
+                if (isAdminLoggedIn) renderAdminQueues();
+                if (document.getElementById('tab-tv').classList.contains('active')) {
+                    initSlideshow();
+                }
+            }
             checkAutoArchive();
         }, 3000);
 
-        // Initial fetch on page load
-        loadData();
+        // Initial load on page startup
+        loadDataFromCloud();
     </script>
 </body>
 </html>
