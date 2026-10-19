@@ -503,9 +503,9 @@
 
     <!-- Navigation Tabs -->
     <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="upload" onclick="switchTab('upload')">📸 Upload Picture</button>
-        <button class="tab-btn" data-tab="tv" onclick="switchTab('tv')">📺 Live TV Slideshow</button>
-        <button class="tab-btn admin-nav-btn" data-tab="admin" onclick="switchTab('admin')">🔑 Admin Login</button>
+        <button class="tab-btn active" id="btn-tab-upload" onclick="switchTab('upload')">📸 Upload Picture</button>
+        <button class="tab-btn" id="btn-tab-tv" onclick="switchTab('tv')">📺 Live TV Slideshow</button>
+        <button class="tab-btn admin-nav-btn" id="btn-tab-admin" onclick="switchTab('admin')">🔑 Admin Login</button>
     </nav>
 
     <!-- Main View Area -->
@@ -523,14 +523,14 @@
                     <div class="upload-dropzone" onclick="document.getElementById('fileInput').click()">
                         <div class="upload-icon">📷</div>
                         <p style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">Click to browse or drag & drop picture</p>
-                        <p style="color: var(--text-muted); font-size: 0.85rem;">Supports JPG, PNG, WEBP (Max 10MB)</p>
+                        <p style="color: var(--text-muted); font-size: 0.85rem;">Supports JPG, PNG, WEBP</p>
                         <input type="file" id="fileInput" accept="image/*" onchange="previewFile(event)">
                     </div>
 
                     <div id="previewBox" class="preview-container">
                         <img id="imagePreview" class="preview-img" alt="Preview">
                         <div style="margin-top: 1rem;">
-                            <button type="submit" class="btn">🚀 Submit Picture for Approval</button>
+                            <button type="submit" class="btn" id="submitBtn">🚀 Submit Picture for Approval</button>
                         </div>
                     </div>
                 </form>
@@ -542,8 +542,7 @@
             <div class="tv-wrapper">
                 <div class="tv-screen" id="tvScreen">
                     <div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);">
-                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">No live pictures available yet.</p>
-                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Upload and approve pictures to begin slideshow.</p>
+                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Loading live pictures...</p>
                     </div>
                 </div>
                 <div class="tv-hud">
@@ -564,7 +563,7 @@
             <div id="adminLoginCard" class="card login-box">
                 <h2>Admin Portal</h2>
                 <div id="loginAlert" class="alert-msg"></div>
-                <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+                <form onsubmit="handleAdminLogin(event)">
                     <div class="form-group">
                         <label class="form-label">Username</label>
                         <input type="text" id="adminUser" class="form-input" required autocomplete="username">
@@ -617,15 +616,17 @@
 
     <!-- Script Application Logic -->
     <script>
+        // Shared JSONbin.io Cloud Bin Configuration
         const BIN_ID = '673a5a7ce41b4d34e44f8e52';
-        const API_KEY = '$2a$10$7vIeS8bK2K8fX5m2z3vQ..9J5tV6v2u1t7u8v9w0x1y2z3A4B5C6D'; 
+        const API_KEY = '$2a$10$7vIeS8bK2K8fX5m2z3vQ..9J5tV6v2u1t7u8v9w0x1y2z3A4B5C6D';
         
         let appData = { photos: [] };
         let selectedFileBase64 = null;
         let currentSlideIndex = 0;
         let slideshowInterval = null;
+        let isAdminLoggedIn = false;
 
-        // Navigation Switcher (Global Scope)
+        // Navigation Switcher
         window.switchTab = function(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -633,15 +634,17 @@
             const targetTab = document.getElementById('tab-' + tabId);
             if (targetTab) targetTab.classList.add('active');
 
-            const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            const targetBtn = document.getElementById('btn-tab-' + tabId);
             if (targetBtn) targetBtn.classList.add('active');
 
             if (tabId === 'tv') {
                 initSlideshow();
+            } else if (tabId === 'admin' && isAdminLoggedIn) {
+                renderAdminQueues();
             }
         };
 
-        // Image Preview Handler (Global Scope)
+        // Image Preview Handler with compression
         window.previewFile = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -655,7 +658,7 @@
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
-                    const maxDim = 1200;
+                    const maxDim = 900; // optimized for cloud payload
 
                     if (width > height && width > maxDim) {
                         height *= maxDim / width;
@@ -668,26 +671,23 @@
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.85);
+                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.8);
 
-                    const previewImg = document.getElementById('imagePreview');
-                    const previewBox = document.getElementById('previewBox');
-                    if (previewImg && previewBox) {
-                        previewImg.src = selectedFileBase64;
-                        previewBox.style.display = 'block';
-                    }
-                };
+                    document.getElementById('imagePreview').src = selectedFileBase64;
+                    document.getElementById('previewBox').style.display = 'block';
+                }
             };
             reader.readAsDataURL(file);
         };
 
-        // Upload handler (Global Scope)
+        // Upload handler
         window.handleImageUpload = async function(e) {
             e.preventDefault();
-            if (!selectedFileBase64) {
-                showAlert('uploadAlert', 'Please select an image first.', 'error');
-                return;
-            }
+            if (!selectedFileBase64) return;
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerText = 'Uploading to Cloud...';
+            submitBtn.disabled = true;
 
             const newPhoto = {
                 id: 'photo_' + Date.now() + Math.random().toString(36).substr(2, 5),
@@ -696,62 +696,63 @@
                 timestamp: Date.now()
             };
 
-            await loadDataFromCloud();
+            const success = await loadDataFromCloud();
             appData.photos.push(newPhoto);
-            await saveDataToCloud();
+            const saved = await saveDataToCloud();
 
-            showAlert('uploadAlert', 'Picture uploaded successfully! Awaiting admin approval.', 'success');
-            const form = document.getElementById('uploadForm');
-            const previewBox = document.getElementById('previewBox');
-            if (form) form.reset();
-            if (previewBox) previewBox.style.display = 'none';
-            selectedFileBase64 = null;
+            submitBtn.innerText = '🚀 Submit Picture for Approval';
+            submitBtn.disabled = false;
+
+            if (saved) {
+                showAlert('uploadAlert', 'Picture successfully uploaded and sent for admin review!', 'success');
+                document.getElementById('uploadForm').reset();
+                document.getElementById('previewBox').style.display = 'none';
+                selectedFileBase64 = null;
+            } else {
+                showAlert('uploadAlert', 'Upload failed. Please check your internet connection.', 'error');
+            }
         };
 
-        // Admin Login handler (Global Scope)
+        // Admin Login handler
         window.handleAdminLogin = function(e) {
             e.preventDefault();
-            const userInp = document.getElementById('adminUser');
-            const passInp = document.getElementById('adminPass');
-            if (!userInp || !passInp) return;
-
-            const user = userInp.value.trim();
-            const pass = passInp.value.trim();
+            const user = document.getElementById('adminUser').value.trim();
+            const pass = document.getElementById('adminPass').value.trim();
 
             if (user === 'Gjelly' && pass === 'Kevisthebest') {
-                const loginCard = document.getElementById('adminLoginCard');
-                const adminDash = document.getElementById('adminDashboard');
-                if (loginCard) loginCard.style.display = 'none';
-                if (adminDash) adminDash.style.display = 'block';
-                renderAdminQueues();
+                isAdminLoggedIn = true;
+                document.getElementById('adminLoginCard').style.display = 'none';
+                document.getElementById('adminDashboard').style.display = 'block';
+                loadDataFromCloud().then(() => renderAdminQueues());
             } else {
                 showAlert('loginAlert', 'Invalid username or password.', 'error');
             }
         };
 
-        // Cloud Data Synchronization
+        // Cloud Data Fetch & Save via JSONbin
         async function loadDataFromCloud() {
             try {
                 const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
+                    headers: { 'X-Master-Key': API_KEY },
+                    cache: 'no-store'
                 });
                 if (res.ok) {
                     const json = await res.json();
-                    if (json && json.record && json.record.photos) {
+                    if (json && json.record) {
                         appData = json.record;
+                        if (!appData.photos) appData.photos = [];
+                        return true;
                     }
                 }
             } catch (err) {
-                const local = localStorage.getItem('miners_photos');
-                if (local) {
-                    try { appData = JSON.parse(local); } catch(e){}
-                }
+                console.warn('Network sync warning:', err);
             }
+            return false;
         }
 
         async function saveDataToCloud() {
             try {
-                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -759,14 +760,17 @@
                     },
                     body: JSON.stringify(appData)
                 });
+                if (res.ok) {
+                    if (isAdminLoggedIn) renderAdminQueues();
+                    return true;
+                }
             } catch (err) {
-                console.warn('Cloud sync error, saving locally:', err);
+                console.error('Cloud save error:', err);
             }
-            localStorage.setItem('miners_photos', JSON.stringify(appData));
-            renderAdminQueues();
-            checkAutoArchive();
+            return false;
         }
 
+        // 6-Month Auto Archive Check (180 Days)
         async function checkAutoArchive() {
             const sixMonthsMs = 180 * 24 * 60 * 60 * 1000;
             const now = Date.now();
@@ -786,13 +790,14 @@
 
         window.simulateAging = async function() {
             const sevenMonthsAgo = Date.now() - (200 * 24 * 60 * 60 * 1000);
+            await loadDataFromCloud();
             appData.photos.forEach(p => {
                 if (p.status === 'live') {
                     p.timestamp = sevenMonthsAgo;
                 }
             });
             await saveDataToCloud();
-            alert('Simulation applied: All live pictures moved to archive.');
+            alert('Simulation applied: All live pictures moved to archive (> 6 months old).');
         };
 
         window.updatePhotoStatus = async function(id, newStatus) {
@@ -812,11 +817,11 @@
             await saveDataToCloud();
         };
 
-        function renderAdminQueues() {
+        window.renderAdminQueues = function() {
             const pendingQ = document.getElementById('pendingQueue');
             const liveQ = document.getElementById('liveQueue');
             const archiveQ = document.getElementById('archiveQueue');
-            if (!pendingQ || !liveQ || !archiveQ) return;
+            if (!pendingQ) return;
 
             pendingQ.innerHTML = '';
             liveQ.innerHTML = '';
@@ -826,46 +831,19 @@
             const live = appData.photos.filter(p => p.status === 'live');
             const archived = appData.photos.filter(p => p.status === 'archived');
 
-            const pBadge = document.getElementById('pendingCountBadge');
-            const lBadge = document.getElementById('liveCountBadge');
-            const aBadge = document.getElementById('archiveCountBadge');
+            document.getElementById('pendingCountBadge').innerText = `${pending.length} Pending`;
+            document.getElementById('liveCountBadge').innerText = `${live.length} Live`;
+            document.getElementById('archiveCountBadge').innerText = `${archived.length} Archived`;
 
-            if (pBadge) pBadge.innerText = `${pending.length} Pending`;
-            if (lBadge) lBadge.innerText = `${live.length} Live`;
-            if (aBadge) aBadge.innerText = `${archived.length} Archived`;
+            pendingQ.innerHTML = pending.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No pending pictures.</p>` :
+                pending.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-approve" onclick="updatePhotoStatus('${p.id}', 'live')">Approve</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Reject</button>`)).join('');
 
-            if (pending.length === 0) {
-                pendingQ.innerHTML = `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No pending pictures.</p>`;
-            } else {
-                pending.forEach(p => {
-                    pendingQ.innerHTML += createPhotoCardHTML(p, `
-                        <button class="action-btn btn-approve" onclick="updatePhotoStatus('${p.id}', 'live')">Approve</button>
-                        <button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Reject</button>
-                    `);
-                });
-            }
+            liveQ.innerHTML = live.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center; ">No live pictures.</p>` :
+                live.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
 
-            if (live.length === 0) {
-                liveQ.innerHTML = `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No live pictures.</p>`;
-            } else {
-                live.forEach(p => {
-                    liveQ.innerHTML += createPhotoCardHTML(p, `
-                        <button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>
-                    `);
-                });
-            }
-
-            if (archived.length === 0) {
-                archiveQ.innerHTML = `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No archived pictures.</p>`;
-            } else {
-                archived.forEach(p => {
-                    archiveQ.innerHTML += createPhotoCardHTML(p, `
-                        <button class="action-btn btn-restore" onclick="updatePhotoStatus('${p.id}', 'live')">Restore to Live</button>
-                        <button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>
-                    `);
-                });
-            }
-        }
+            archiveQ.innerHTML = archived.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No archived pictures.</p>` :
+                archived.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-restore" onclick="updatePhotoStatus('${p.id}', 'live')">Restore to Live</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
+        };
 
         function createPhotoCardHTML(photo, actionsHTML) {
             const dateStr = new Date(photo.timestamp).toLocaleDateString();
@@ -880,12 +858,13 @@
             `;
         }
 
+        // TV Slideshow Logic (Shuffles every 5 seconds)
         window.initSlideshow = async function() {
             await loadDataFromCloud();
             const livePhotos = appData.photos.filter(p => p.status === 'live');
             const screen = document.getElementById('tvScreen');
             const counter = document.getElementById('tvCounter');
-            if (!screen || !counter) return;
+            if (!screen) return;
 
             if (livePhotos.length === 0) {
                 screen.innerHTML = `
@@ -899,15 +878,11 @@
             }
 
             const shuffled = [...livePhotos].sort(() => Math.random() - 0.5);
-
-            screen.innerHTML = '';
-            shuffled.forEach((p, idx) => {
-                screen.innerHTML += `
-                    <div class="tv-slide ${idx === 0 ? 'active' : ''}" data-index="${idx}">
-                        <img src="${p.dataUrl}" alt="Live slide">
-                    </div>
-                `;
-            });
+            screen.innerHTML = shuffled.map((p, idx) => `
+                <div class="tv-slide ${idx === 0 ? 'active' : ''}" data-index="${idx}">
+                    <img src="${p.dataUrl}" alt="Live slide">
+                </div>
+            `).join('');
 
             if (slideshowInterval) clearInterval(slideshowInterval);
 
@@ -927,7 +902,6 @@
 
         window.enterFullscreen = function() {
             const tvEl = document.querySelector('.tv-wrapper');
-            if (!tvEl) return;
             if (tvEl.requestFullscreen) {
                 tvEl.requestFullscreen();
             } else if (tvEl.webkitRequestFullscreen) {
@@ -941,17 +915,23 @@
             el.innerText = message;
             el.className = `alert-msg alert-${type}`;
             el.style.display = 'block';
-            setTimeout(() => {
-                el.style.display = 'none';
-            }, 5000);
+            setTimeout(() => { el.style.display = 'none'; }, 6000);
         }
 
-        // Auto poll cloud every 5 seconds
-        setInterval(() => {
-            loadDataFromCloud();
-        }, 5000);
+        // Continuous Polling Every 4 Seconds to sync across phone, laptop, and TV
+        setInterval(async () => {
+            const prevLen = appData.photos.length;
+            await loadDataFromCloud();
+            if (appData.photos.length !== prevLen) {
+                if (isAdminLoggedIn) renderAdminQueues();
+                if (document.getElementById('tab-tv').classList.contains('active')) {
+                    initSlideshow();
+                }
+            }
+            checkAutoArchive();
+        }, 4000);
 
-        // Initial load
+        // Initial fetch on page load
         loadDataFromCloud();
     </script>
 </body>
