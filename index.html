@@ -1,0 +1,1149 @@
+<!-- ... existing code ... -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Miners Arms - TV Photo Display & Moderation</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts for Miners Arms Branding -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@500;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              100: '#FDFBF7',
+              200: '#F3EBD3',
+              300: '#E5D8B6',
+              400: '#D4C39B',
+              500: '#C5AF7D',
+              600: '#AA9360',
+              700: '#8A7446',
+              800: '#5C4C2B',
+              900: '#382D19',
+            },
+            charcoal: {
+              800: '#252525',
+              900: '#1C1C1C',
+              950: '#121212',
+            }
+          },
+          fontFamily: {
+            serifTitle: ['Cinzel', 'serif'],
+            scriptAccent: ['Alex Brush', 'cursive'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #121212;
+      color: #E5D8B6;
+    }
+    
+    .font-cinzel { font-family: 'Cinzel', serif; }
+    .font-script { font-family: 'Alex Brush', cursive; }
+
+    /* Crossfade animation logic for TV View */
+    .fade-enter {
+      opacity: 0;
+      transform: scale(1.05);
+    }
+    .fade-active {
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 1000ms ease-in-out, transform 8000ms linear;
+    }
+    .fade-exit {
+      opacity: 0;
+      transform: scale(1);
+      transition: opacity 1000ms ease-in-out;
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #121212;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #382D19;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #8A7446;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-x-hidden selection:bg-gold-500 selection:text-charcoal-950">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header id="main-nav" class="sticky top-0 z-40 bg-charcoal-900/95 backdrop-blur-md border-b border-gold-800/40 transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Brand / Logo (The Miners Arms) -->
+        <div class="flex items-center gap-3 cursor-pointer group" onclick="switchView('tv')">
+          <!-- Recreated SVG Miners Arms Logo Icon -->
+          <div class="w-12 h-12 flex-shrink-0 relative flex items-center justify-center p-1 bg-charcoal-950 border border-gold-600/30 rounded-xl shadow-lg group-hover:border-gold-400 transition-all">
+            <svg viewBox="0 0 500 450" class="w-full h-full text-gold-300 fill-current">
+              <!-- Crossed Pickaxes -->
+              <path d="M 110,60 L 140,40 C 200,100 270,180 390,320 L 370,340 C 250,200 170,120 110,60 Z" opacity="0.95"/>
+              <path d="M 390,60 L 360,40 C 300,100 230,180 110,320 L 130,340 C 250,200 330,120 390,60 Z" opacity="0.95"/>
+              <!-- Pickaxe Heads -->
+              <path d="M 80,75 Q 120,40 160,25 L 145,10 Q 95,30 65,70 Z"/>
+              <path d="M 420,75 Q 380,40 340,25 L 355,10 Q 405,30 435,70 Z"/>
+              <!-- Miners Helmet Center -->
+              <path d="M 170,220 C 170,130 330,130 330,220 C 345,220 355,230 350,245 C 335,260 165,260 150,245 C 145,230 155,220 170,220 Z"/>
+              <!-- Helmet Ridge & Brim -->
+              <path d="M 235,135 Q 250,120 265,135 L 260,220 L 240,220 Z" fill="#D4C39B"/>
+              <!-- Headlamp Glow -->
+              <circle cx="250" cy="210" r="22" fill="#FFF8E7" class="animate-pulse"/>
+              <circle cx="250" cy="210" r="16" fill="#E5D8B6"/>
+            </svg>
+          </div>
+
+          <div class="flex flex-col">
+            <div class="flex items-baseline gap-1">
+              <span class="font-cinzel font-extrabold text-lg sm:text-xl tracking-wider text-gold-300">THE MINERS</span>
+              <span class="font-script text-2xl text-gold-200 -ml-0.5 leading-none">Arms</span>
+            </div>
+            <p class="text-[10px] uppercase tracking-widest text-gold-500 font-medium -mt-1">TV Display & Photo Hub</p>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex items-center gap-1 sm:gap-2">
+          <button id="nav-btn-tv" onclick="switchView('tv')" class="px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all bg-gold-600 text-charcoal-950 shadow-lg shadow-gold-600/20">
+            <i data-lucide="tv" class="w-4 h-4"></i>
+            <span>TV Display</span>
+          </button>
+          
+          <button id="nav-btn-upload" onclick="switchView('upload')" class="px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-medium text-gold-300 hover:text-white hover:bg-charcoal-800 flex items-center gap-2 transition-all">
+            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+            <span>Upload Photo</span>
+          </button>
+
+          <button id="nav-btn-admin" onclick="switchView('admin')" class="px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-medium text-gold-300 hover:text-white hover:bg-charcoal-800 flex items-center gap-2 transition-all relative">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <span>Admin Control</span>
+            <span id="pending-badge" class="hidden absolute -top-1 -right-1 bg-amber-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-charcoal-900 animate-pulse">0</span>
+          </button>
+        </nav>
+
+        <!-- Header Actions (Fullscreen toggle for TV) -->
+        <div class="hidden sm:flex items-center gap-2">
+          <button onclick="toggleFullscreen()" title="Enter Fullscreen TV Mode" class="px-3.5 py-2 bg-charcoal-950 hover:bg-gold-600/20 border border-gold-600/40 text-gold-300 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all">
+            <i data-lucide="maximize" class="w-4 h-4 text-gold-400"></i>
+            <span>Fullscreen TV</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 relative overflow-hidden flex flex-col bg-charcoal-950">
+
+    <!-- ========================================== -->
+    <!-- 1. FULLSCREEN TV SLIDESHOW VIEW TAB -->
+    <!-- ========================================== -->
+    <section id="view-tv" class="absolute inset-0 z-10 bg-black flex flex-col justify-center items-center overflow-hidden">
+      <!-- Background Image Containers for smooth crossfade -->
+      <div id="tv-bg-1" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out transform scale-100"></div>
+      <div id="tv-bg-2" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out transform scale-100 opacity-0"></div>
+
+      <!-- Vignette & Dark Overlay -->
+      <div class="absolute inset-0 bg-radial-gradient from-transparent via-black/40 to-black/90 pointer-events-none"></div>
+
+      <!-- Fullscreen Action Banner on TV View -->
+      <div id="fullscreen-launch-banner" class="absolute top-6 left-1/2 transform -translate-x-1/2 z-30 pointer-events-auto bg-charcoal-900/95 border border-gold-600/40 backdrop-blur-md px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-4 transition-opacity">
+        <i data-lucide="tv" class="w-5 h-5 text-gold-400"></i>
+        <div class="flex flex-col">
+          <span class="text-xs font-bold text-gold-200 uppercase tracking-wider">The Miners Arms TV Mode</span>
+          <span class="text-[11px] text-gold-500">Auto-shuffling live approved photos</span>
+        </div>
+        <button onclick="toggleFullscreen()" class="ml-2 px-3.5 py-1.5 bg-gold-600 hover:bg-gold-500 text-charcoal-950 rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-1.5">
+          <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+          <span>Launch Fullscreen</span>
+        </button>
+      </div>
+
+      <!-- Live TV Overlay HUD -->
+      <div id="tv-hud" class="absolute inset-0 p-6 sm:p-10 flex flex-col justify-between pointer-events-none transition-opacity duration-300 opacity-100">
+        
+        <!-- Top HUD (Branding Watermark + Clock Controls) -->
+        <div class="flex justify-between items-start mt-12 sm:mt-0">
+          
+          <!-- Miners Arms TV Watermark -->
+          <div class="bg-charcoal-900/90 backdrop-blur-md border border-gold-600/40 rounded-2xl p-3 sm:p-4 shadow-2xl flex items-center gap-3">
+            <div class="w-10 h-10 flex-shrink-0 text-gold-300 fill-current">
+              <svg viewBox="0 0 500 450" class="w-full h-full">
+                <path d="M 110,60 L 140,40 C 200,100 270,180 390,320 L 370,340 C 250,200 170,120 110,60 Z"/>
+                <path d="M 390,60 L 360,40 C 300,100 230,180 110,320 L 130,340 C 250,200 330,120 390,60 Z"/>
+                <path d="M 80,75 Q 120,40 160,25 L 145,10 Q 95,30 65,70 Z"/>
+                <path d="M 420,75 Q 380,40 340,25 L 355,10 Q 405,30 435,70 Z"/>
+                <path d="M 170,220 C 170,130 330,130 330,220 C 345,220 355,230 350,245 C 335,260 165,260 150,245 C 145,230 155,220 170,220 Z"/>
+                <circle cx="250" cy="210" r="20" fill="#FFF8E7"/>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-baseline gap-1">
+                <span class="font-cinzel font-bold text-sm tracking-wider text-gold-300">THE MINERS</span>
+                <span class="font-script text-lg text-gold-200">Arms</span>
+              </div>
+              <p class="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live Cloud Broadcast
+              </p>
+            </div>
+          </div>
+
+          <!-- Clock & Controls -->
+          <div class="flex items-center gap-3 pointer-events-auto">
+            <div id="tv-clock" class="bg-charcoal-900/90 backdrop-blur-md border border-gold-600/40 px-5 py-3 rounded-2xl text-xl font-bold font-mono tracking-wider text-gold-200 shadow-2xl">
+              00:00:00
+            </div>
+            <button onclick="toggleSlideshowPause()" id="pause-btn" class="bg-charcoal-900/90 hover:bg-charcoal-800 border border-gold-600/40 p-3 rounded-2xl text-gold-300 hover:text-white transition-all shadow-2xl" title="Pause / Play">
+              <i data-lucide="pause" id="pause-icon" class="w-5 h-5"></i>
+            </button>
+            <button onclick="nextSlide()" class="bg-charcoal-900/90 hover:bg-charcoal-800 border border-gold-600/40 p-3 rounded-2xl text-gold-300 hover:text-white transition-all shadow-2xl" title="Next Photo">
+              <i data-lucide="skip-forward" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom HUD Info & Progress Bar -->
+        <div class="space-y-3">
+          <div class="flex justify-between items-end">
+            <div class="bg-charcoal-900/90 backdrop-blur-md border border-gold-600/40 rounded-2xl px-5 py-3 shadow-2xl max-w-md">
+              <p class="text-sm font-bold text-gold-200 font-cinzel tracking-wide" id="tv-photo-title">Connecting to Cloud...</p>
+              <div class="flex items-center gap-3 mt-1 text-xs text-gold-400">
+                <span id="tv-photo-uploader">Uploaded by Community</span>
+                <span>•</span>
+                <span id="tv-photo-date">Added recently</span>
+              </div>
+            </div>
+            <div class="bg-charcoal-900/90 backdrop-blur-md border border-gold-600/40 rounded-full px-4 py-1.5 text-xs text-gold-300 shadow-2xl flex items-center gap-2">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-gold-400 animate-spin"></i>
+              <span>Shuffling every 5s</span>
+            </div>
+          </div>
+
+          <!-- Gold Progress Bar for 5s timer -->
+          <div class="w-full bg-charcoal-950/80 rounded-full h-1.5 overflow-hidden backdrop-blur-md border border-gold-900/30">
+            <div id="tv-progress-bar" class="bg-gradient-to-r from-gold-600 via-gold-400 to-gold-200 h-full w-0 transition-all duration-100 ease-linear"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fallback Empty State for TV View -->
+      <div id="tv-empty-state" class="hidden absolute inset-0 bg-charcoal-950 flex flex-col items-center justify-center text-center p-6 z-20">
+        <div class="p-8 bg-charcoal-900 border border-gold-600/30 rounded-3xl max-w-md shadow-2xl flex flex-col items-center">
+          <div class="w-16 h-16 bg-gold-600/10 text-gold-400 border border-gold-600/30 rounded-2xl flex items-center justify-center mb-4">
+            <i data-lucide="image-off" class="w-8 h-8"></i>
+          </div>
+          <h3 class="text-xl font-bold font-cinzel text-gold-200 mb-2">No Live Photos Approved</h3>
+          <p class="text-xs text-gold-400/80 mb-6">There are currently no active photos approved for display on The Miners Arms TV slideshow.</p>
+          <div class="flex gap-3">
+            <button onclick="switchView('upload')" class="px-4 py-2.5 bg-gold-600 hover:bg-gold-500 text-charcoal-950 text-xs font-bold rounded-xl transition-all shadow-lg shadow-gold-600/20">
+              Upload Photos
+            </button>
+            <button onclick="switchView('admin')" class="px-4 py-2.5 bg-charcoal-800 hover:bg-charcoal-700 text-gold-300 text-xs font-semibold rounded-xl transition-all">
+              Admin Login
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 2. USER PHOTO UPLOAD VIEW -->
+    <!-- ========================================== -->
+    <section id="view-upload" class="hidden flex-1 overflow-y-auto p-4 sm:p-8 bg-charcoal-950">
+      <div class="max-w-3xl mx-auto space-y-8">
+        
+        <!-- Header Banner with Miners Arms Logo -->
+        <div class="text-center space-y-3">
+          <div class="w-20 h-20 mx-auto text-gold-300 fill-current">
+            <svg viewBox="0 0 500 450" class="w-full h-full">
+              <path d="M 110,60 L 140,40 C 200,100 270,180 390,320 L 370,340 C 250,200 170,120 110,60 Z"/>
+              <path d="M 390,60 L 360,40 C 300,100 230,180 110,320 L 130,340 C 250,200 330,120 390,60 Z"/>
+              <path d="M 80,75 Q 120,40 160,25 L 145,10 Q 95,30 65,70 Z"/>
+              <path d="M 420,75 Q 380,40 340,25 L 355,10 Q 405,30 435,70 Z"/>
+              <path d="M 170,220 C 170,130 330,130 330,220 C 345,220 355,230 350,245 C 335,260 165,260 150,245 C 145,230 155,220 170,220 Z"/>
+              <circle cx="250" cy="210" r="22" fill="#FFF8E7"/>
+            </svg>
+          </div>
+          <div class="flex items-center justify-center gap-1.5">
+            <span class="font-cinzel font-extrabold text-2xl sm:text-3xl text-gold-300 tracking-wider">THE MINERS</span>
+            <span class="font-script text-4xl text-gold-200">Arms</span>
+          </div>
+          <p class="text-xs uppercase tracking-widest text-gold-500 font-semibold">Broadcast Your Memories on Pub TV</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-charcoal-900 border border-gold-600/30 rounded-3xl p-6 sm:p-8 shadow-2xl">
+          <form id="upload-form" onsubmit="handleUploadSubmit(event)" class="space-y-6">
+            
+            <!-- Drag & Drop Zone -->
+            <div id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)" 
+                 class="border-2 border-dashed border-gold-800/60 hover:border-gold-500 bg-charcoal-950/60 hover:bg-gold-950/20 rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center group relative overflow-hidden">
+              
+              <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+              
+              <div id="upload-prompt" class="flex flex-col items-center space-y-3">
+                <div class="w-16 h-16 rounded-2xl bg-gold-600/10 text-gold-400 border border-gold-600/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i data-lucide="image-plus" class="w-8 h-8"></i>
+                </div>
+                <div>
+                  <p class="text-base font-semibold text-gold-200">Click or drag photo to upload</p>
+                  <p class="text-xs text-gold-500 mt-1">Supports PNG, JPG, JPEG or WEBP</p>
+                </div>
+              </div>
+
+              <!-- Preview -->
+              <div id="upload-preview-container" class="hidden flex-col items-center w-full space-y-4">
+                <div class="relative max-h-64 rounded-xl overflow-hidden border border-gold-600/40 shadow-lg">
+                  <img id="upload-preview-img" src="" alt="Preview" class="max-h-64 object-contain rounded-xl">
+                  <button type="button" onclick="event.stopPropagation(); resetUploadForm();" class="absolute top-2 right-2 p-1.5 bg-charcoal-950/80 hover:bg-rose-600 text-gold-300 hover:text-white rounded-lg backdrop-blur-md transition-all">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                  </button>
+                </div>
+                <p id="preview-file-name" class="text-xs font-mono text-gold-400 truncate max-w-xs"></p>
+              </div>
+            </div>
+
+            <!-- Details Fields -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="uploader-name" class="block text-xs font-semibold text-gold-300 uppercase tracking-wider mb-1">Your Name</label>
+                <input type="text" id="uploader-name" required placeholder="e.g., John Smith" class="w-full bg-charcoal-950 border border-gold-800/60 rounded-xl px-4 py-2.5 text-sm text-gold-100 placeholder-gold-700/60 focus:outline-none focus:border-gold-500 transition-all">
+              </div>
+              <div>
+                <label for="photo-caption" class="block text-xs font-semibold text-gold-300 uppercase tracking-wider mb-1">Caption / Title</label>
+                <input type="text" id="photo-caption" placeholder="e.g., Great Night at Miners Arms!" class="w-full bg-charcoal-950 border border-gold-800/60 rounded-xl px-4 py-2.5 text-sm text-gold-100 placeholder-gold-700/60 focus:outline-none focus:border-gold-500 transition-all">
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submit-upload-btn" disabled class="w-full py-3.5 px-6 rounded-xl bg-charcoal-800 text-gold-700/60 font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span>Submit to Miners Arms Cloud</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Moderation Info -->
+        <div class="bg-charcoal-900 border border-gold-600/30 rounded-2xl p-4 flex items-start gap-3">
+          <div class="p-2 bg-gold-600/10 text-gold-400 rounded-xl flex-shrink-0 border border-gold-600/30">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <div class="text-xs text-gold-300/80 leading-relaxed">
+            <span class="font-bold text-gold-200">Moderation Notice:</span> Uploaded photos require approval from admin <span class="font-bold text-gold-400">Gjelly</span>. Once approved, your photo instantly displays on the pub TV screens!
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 3. ADMIN DASHBOARD & LOGIN SECTION -->
+    <!-- ========================================== -->
+    <section id="view-admin" class="hidden flex-1 overflow-y-auto p-4 sm:p-8 bg-charcoal-950">
+      
+      <!-- LOGIN CARD -->
+      <div id="admin-login-card" class="max-w-md mx-auto my-12 bg-charcoal-900 border border-gold-600/30 rounded-3xl p-8 shadow-2xl space-y-6">
+        <div class="text-center space-y-2">
+          <div class="w-16 h-16 mx-auto text-gold-300 fill-current mb-2">
+            <svg viewBox="0 0 500 450" class="w-full h-full">
+              <path d="M 110,60 L 140,40 C 200,100 270,180 390,320 L 370,340 C 250,200 170,120 110,60 Z"/>
+              <path d="M 390,60 L 360,40 C 300,100 230,180 110,320 L 130,340 C 250,200 330,120 390,60 Z"/>
+              <path d="M 80,75 Q 120,40 160,25 L 145,10 Q 95,30 65,70 Z"/>
+              <path d="M 420,75 Q 380,40 340,25 L 355,10 Q 405,30 435,70 Z"/>
+              <path d="M 170,220 C 170,130 330,130 330,220 C 345,220 355,230 350,245 C 335,260 165,260 150,245 C 145,230 155,220 170,220 Z"/>
+              <circle cx="250" cy="210" r="22" fill="#FFF8E7"/>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold font-cinzel text-gold-200">Admin Login</h3>
+          <p class="text-xs text-gold-400">The Miners Arms Photo Moderation Panel</p>
+        </div>
+
+        <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-gold-300 uppercase tracking-wider mb-1">Username</label>
+            <input type="text" id="admin-user" required placeholder="Enter username" class="w-full bg-charcoal-950 border border-gold-800/60 rounded-xl px-4 py-2.5 text-sm text-gold-100 placeholder-gold-800 focus:outline-none focus:border-gold-500 transition-all">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gold-300 uppercase tracking-wider mb-1">Password</label>
+            <input type="password" id="admin-pass" required placeholder="Enter password" class="w-full bg-charcoal-950 border border-gold-800/60 rounded-xl px-4 py-2.5 text-sm text-gold-100 placeholder-gold-800 focus:outline-none focus:border-gold-500 transition-all">
+          </div>
+
+          <div id="login-error" class="hidden p-3 bg-rose-950/60 border border-rose-800/60 rounded-xl text-xs text-rose-300 text-center">
+            Invalid username or password.
+          </div>
+
+          <button type="submit" class="w-full py-3 px-4 bg-gold-600 hover:bg-gold-500 text-charcoal-950 font-bold text-sm rounded-xl shadow-lg shadow-gold-600/20 transition-all">
+            Access Dashboard
+          </button>
+        </form>
+      </div>
+
+      <!-- ADMIN DASHBOARD PANEL -->
+      <div id="admin-panel" class="hidden max-w-7xl mx-auto space-y-6">
+        
+        <!-- Header Toolbar -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-charcoal-900 border border-gold-600/30 rounded-2xl p-4 sm:p-6 shadow-xl">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-gold-600/10 border border-gold-600/30 text-gold-400 rounded-xl flex items-center justify-center p-1.5">
+              <svg viewBox="0 0 500 450" class="w-full h-full fill-current">
+                <path d="M 110,60 L 140,40 C 200,100 270,180 390,320 L 370,340 C 250,200 170,120 110,60 Z"/>
+                <path d="M 390,60 L 360,40 C 300,100 230,180 110,320 L 130,340 C 250,200 330,120 390,60 Z"/>
+                <path d="M 170,220 C 170,130 330,130 330,220 C 345,220 355,230 350,245 C 335,260 165,260 150,245 C 145,230 155,220 170,220 Z"/>
+                <circle cx="250" cy="210" r="22" fill="#FFF8E7"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold font-cinzel text-gold-200 flex items-center gap-2">
+                Miners Arms Moderator Panel
+              </h2>
+              <p class="text-xs text-gold-400">Logged in as <span id="admin-name-display" class="font-bold text-gold-300">Gjelly</span></p>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons & Logout -->
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button onclick="simulate6MonthAgeing()" title="Test auto-archive logic" class="px-3.5 py-2 bg-charcoal-950 border border-gold-600/40 hover:bg-gold-600/20 text-gold-300 text-xs font-medium rounded-xl transition-all flex items-center gap-1.5">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-gold-400"></i>
+              <span>Simulate 6-Mo Aging</span>
+            </button>
+            <button onclick="handleAdminLogout()" class="px-3.5 py-2 bg-charcoal-800 hover:bg-charcoal-700 text-gold-300 text-xs font-medium rounded-xl transition-all flex items-center gap-1.5">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Admin Navigation Tabs -->
+        <div class="flex border-b border-gold-800/40 gap-2 sm:gap-6 text-sm font-medium">
+          <button id="admin-tab-pending" onclick="switchAdminTab('pending')" class="pb-3 text-gold-300 border-b-2 border-gold-500 flex items-center gap-2 transition-all font-semibold">
+            <i data-lucide="clock" class="w-4 h-4"></i>
+            <span>Pending Review</span>
+            <span id="tab-pending-count" class="bg-gold-900 text-gold-300 border border-gold-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+          </button>
+
+          <button id="admin-tab-live" onclick="switchAdminTab('live')" class="pb-3 text-gold-500 hover:text-gold-200 flex items-center gap-2 transition-all">
+            <i data-lucide="tv" class="w-4 h-4"></i>
+            <span>Live Photos</span>
+            <span id="tab-live-count" class="bg-charcoal-800 text-gold-300 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+          </button>
+
+          <button id="admin-tab-archive" onclick="switchAdminTab('archive')" class="pb-3 text-gold-500 hover:text-gold-200 flex items-center gap-2 transition-all">
+            <i data-lucide="archive" class="w-4 h-4"></i>
+            <span>Archived (&gt;6 Months)</span>
+            <span id="tab-archive-count" class="bg-charcoal-800 text-gold-300 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+          </button>
+        </div>
+
+        <!-- TAB CONTENT 1: PENDING -->
+        <div id="admin-content-pending" class="space-y-4">
+          <div id="pending-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+          <div id="pending-empty" class="hidden text-center py-16 bg-charcoal-900/40 border border-gold-800/30 rounded-3xl">
+            <i data-lucide="check-circle-2" class="w-12 h-12 text-gold-600 mx-auto mb-3"></i>
+            <h4 class="text-base font-semibold text-gold-200">No pending uploads</h4>
+            <p class="text-xs text-gold-500 mt-1">All photo submissions have been reviewed.</p>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 2: LIVE PHOTOS -->
+        <div id="admin-content-live" class="hidden space-y-4">
+          <div id="live-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+          <div id="live-empty" class="hidden text-center py-16 bg-charcoal-900/40 border border-gold-800/30 rounded-3xl">
+            <i data-lucide="image" class="w-12 h-12 text-gold-600 mx-auto mb-3"></i>
+            <h4 class="text-base font-semibold text-gold-200">No Live Photos</h4>
+            <p class="text-xs text-gold-500 mt-1">Approve pending submissions to show them on the pub TV.</p>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 3: ARCHIVED PHOTOS -->
+        <div id="admin-content-archive" class="hidden space-y-4">
+          <div class="bg-charcoal-900 border border-gold-600/30 rounded-xl p-3 text-xs text-gold-300 flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4 flex-shrink-0 text-gold-400"></i>
+            <span>Photos older than 6 months (180 days) are archived automatically. Admin can restore any archived photo back to live view with 1 click.</span>
+          </div>
+
+          <div id="archive-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+          <div id="archive-empty" class="hidden text-center py-16 bg-charcoal-900/40 border border-gold-800/30 rounded-3xl">
+            <i data-lucide="folder-archive" class="w-12 h-12 text-gold-600 mx-auto mb-3"></i>
+            <h4 class="text-base font-semibold text-gold-200">Archive Empty</h4>
+            <p class="text-xs text-gold-500 mt-1">No photos currently in the 6-month archive.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-charcoal-900 border border-gold-600/40 text-gold-200 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3">
+    <div id="toast-icon" class="p-1.5 bg-gold-600 text-charcoal-950 rounded-lg">
+      <i data-lucide="bell" class="w-4 h-4"></i>
+    </div>
+    <span id="toast-message" class="text-sm font-medium">Notification message</span>
+  </div>
+
+  <!-- FIREBASE MODULE -->
+  <script type="module">
+    // ... existing code ...
+    // Note: Script logic preserved, incorporating updated Miners Arms seed data and branding strings.
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'miners-arms-tv';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+      apiKey: "demo-api-key",
+      authDomain: "demo-app.firebaseapp.com",
+      projectId: "demo-app",
+      storageBucket: "demo-app.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const ADMIN_CREDS = { user: 'Gjelly', pass: 'Kevisthebest' };
+    
+    // Seed Photos themed for The Miners Arms
+    const SEED_PHOTOS = [
+      {
+        id: 'seed-miners-1',
+        url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1600&q=80',
+        title: 'Pub Atmosphere at Miners Arms',
+        uploader: 'The Miners Arms Staff',
+        timestamp: Date.now() - (1000 * 60 * 60 * 24 * 5),
+        status: 'approved'
+      },
+      {
+        id: 'seed-miners-2',
+        url: 'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?auto=format&fit=crop&w=1600&q=80',
+        title: 'Craft Ales on Tap',
+        uploader: 'Bar Team',
+        timestamp: Date.now() - (1000 * 60 * 60 * 24 * 30),
+        status: 'approved'
+      },
+      {
+        id: 'seed-miners-3',
+        url: 'https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=1600&q=80',
+        title: 'Historic Pub Frontage',
+        uploader: 'Local Historian',
+        timestamp: Date.now() - (1000 * 60 * 60 * 24 * 200), // > 6 months
+        status: 'approved'
+      }
+    ];
+
+    let photos = [];
+    let livePool = [];
+    let currentSlideIndex = 0;
+    let slideshowTimer = null;
+    let progressTimer = null;
+    let isPaused = false;
+    let progressPercent = 0;
+    let activeBgSlot = 1;
+    let selectedFileBase64 = null;
+    let isAdminLoggedIn = false;
+    let isDbInitialized = false;
+
+    const photosColRef = collection(db, 'artifacts', appId, 'public', 'data', 'photos');
+
+    async function initApp() {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.warn("Auth fallback", err);
+      }
+
+      onSnapshot(photosColRef, (snapshot) => {
+        let loadedPhotos = [];
+        snapshot.forEach((docSnap) => {
+          loadedPhotos.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        if (loadedPhotos.length === 0 && !isDbInitialized) {
+          seedDatabase();
+          return;
+        }
+
+        isDbInitialized = true;
+        loadedPhotos.sort((a, b) => b.timestamp - a.timestamp);
+        photos = loadedPhotos;
+
+        checkAndRunAutoArchive();
+        updatePendingBadge();
+        updateLivePoolAndSlideshow();
+
+        if (isAdminLoggedIn) {
+          renderAdminDashboard();
+        }
+      }, (error) => {
+        console.error("Firestore sync error:", error);
+      });
+    }
+
+    async function seedDatabase() {
+      for (const p of SEED_PHOTOS) {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', p.id);
+        await setDoc(docRef, p);
+      }
+    }
+
+    async function checkAndRunAutoArchive() {
+      const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+
+      for (const p of photos) {
+        if (p.status === 'approved' && (now - p.timestamp) > SIX_MONTHS_MS) {
+          const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', p.id);
+          await updateDoc(docRef, { status: 'archived' });
+        }
+      }
+    }
+
+    function updateLivePoolAndSlideshow() {
+      const newPool = photos.filter(p => p.status === 'approved');
+      const isPoolDifferent = JSON.stringify(newPool.map(p => p.id)) !== JSON.stringify(livePool.map(p => p.id));
+      
+      if (isPoolDifferent || livePool.length === 0) {
+        livePool = shuffleArray([...newPool]);
+        currentSlideIndex = 0;
+
+        const emptyState = document.getElementById('tv-empty-state');
+        const hud = document.getElementById('tv-hud');
+
+        if (livePool.length === 0) {
+          emptyState.classList.remove('hidden');
+          hud.classList.add('opacity-0');
+        } else {
+          emptyState.classList.add('hidden');
+          hud.classList.remove('opacity-0');
+          displayCurrentSlide();
+        }
+      }
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function displayCurrentSlide() {
+      if (livePool.length === 0) return;
+
+      const photo = livePool[currentSlideIndex];
+      const bg1 = document.getElementById('tv-bg-1');
+      const bg2 = document.getElementById('tv-bg-2');
+
+      if (activeBgSlot === 1) {
+        bg2.style.backgroundImage = `url('${photo.url}')`;
+        bg2.classList.remove('opacity-0');
+        bg1.classList.add('opacity-0');
+        activeBgSlot = 2;
+      } else {
+        bg1.style.backgroundImage = `url('${photo.url}')`;
+        bg1.classList.remove('opacity-0');
+        bg2.classList.add('opacity-0');
+        activeBgSlot = 1;
+      }
+
+      document.getElementById('tv-photo-title').textContent = photo.title || 'The Miners Arms';
+      document.getElementById('tv-photo-uploader').textContent = `Uploaded by ${photo.uploader || 'Guest'}`;
+      document.getElementById('tv-photo-date').textContent = new Date(photo.timestamp).toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric'
+      });
+
+      progressPercent = 0;
+      updateProgressBar();
+    }
+
+    function startSlideshowLoop() {
+      clearInterval(slideshowTimer);
+      clearInterval(progressTimer);
+
+      const STEP_MS = 100;
+      const TOTAL_MS = 5000;
+
+      progressTimer = setInterval(() => {
+        if (isPaused || livePool.length === 0) return;
+
+        progressPercent += (STEP_MS / TOTAL_MS) * 100;
+        updateProgressBar();
+
+        if (progressPercent >= 100) {
+          nextSlide();
+        }
+      }, STEP_MS);
+    }
+
+    function updateProgressBar() {
+      const bar = document.getElementById('tv-progress-bar');
+      if (bar) {
+        bar.style.width = `${Math.min(progressPercent, 100)}%`;
+      }
+    }
+
+    window.nextSlide = function() {
+      if (livePool.length === 0) return;
+      currentSlideIndex = (currentSlideIndex + 1) % livePool.length;
+      displayCurrentSlide();
+    };
+
+    window.toggleSlideshowPause = function() {
+      isPaused = !isPaused;
+      const icon = document.getElementById('pause-icon');
+      if (isPaused) {
+        icon.setAttribute('data-lucide', 'play');
+        showToast('Slideshow Paused');
+      } else {
+        icon.setAttribute('data-lucide', 'pause');
+        showToast('Slideshow Resumed');
+      }
+      initLucideIcons();
+    };
+
+    function startClock() {
+      setInterval(() => {
+        const clockEl = document.getElementById('tv-clock');
+        if (clockEl) {
+          const now = new Date();
+          clockEl.textContent = now.toLocaleTimeString([], { hour12: false });
+        }
+      }, 1000);
+    }
+
+    window.toggleFullscreen = function() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {
+          showToast('Fullscreen mode blocked by browser');
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    };
+
+    // UPLOAD LOGIC
+    window.handleDragOver = function(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.add('border-gold-500', 'bg-gold-950/30');
+    };
+
+    window.handleDragLeave = function(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('border-gold-500', 'bg-gold-950/30');
+    };
+
+    window.handleDrop = function(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('border-gold-500', 'bg-gold-950/30');
+
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        processFile(files[0]);
+      }
+    };
+
+    window.handleFileSelect = function(e) {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        processFile(files[0]);
+      }
+    };
+
+    function processFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1200;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          renderPreview(file.name);
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderPreview(fileName) {
+      document.getElementById('upload-prompt').classList.add('hidden');
+      const previewContainer = document.getElementById('upload-preview-container');
+      const previewImg = document.getElementById('upload-preview-img');
+      const fileNameEl = document.getElementById('preview-file-name');
+
+      previewImg.src = selectedFileBase64;
+      fileNameEl.textContent = fileName;
+      previewContainer.classList.remove('hidden');
+
+      const submitBtn = document.getElementById('submit-upload-btn');
+      submitBtn.disabled = false;
+      submitBtn.className = "w-full py-3.5 px-6 rounded-xl bg-gold-600 hover:bg-gold-500 text-charcoal-950 font-bold text-sm shadow-lg shadow-gold-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer";
+    }
+
+    window.resetUploadForm = function() {
+      selectedFileBase64 = null;
+      document.getElementById('file-input').value = '';
+      document.getElementById('upload-prompt').classList.remove('hidden');
+      document.getElementById('upload-preview-container').classList.add('hidden');
+
+      const submitBtn = document.getElementById('submit-upload-btn');
+      submitBtn.disabled = true;
+      submitBtn.className = "w-full py-3.5 px-6 rounded-xl bg-charcoal-800 text-gold-700/60 font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-not-allowed";
+    };
+
+    window.handleUploadSubmit = async function(e) {
+      e.preventDefault();
+      if (!selectedFileBase64) return;
+
+      const uploaderName = document.getElementById('uploader-name').value.trim() || 'Guest';
+      const caption = document.getElementById('photo-caption').value.trim() || 'The Miners Arms';
+
+      const photoId = 'photo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+      const newPhoto = {
+        id: photoId,
+        url: selectedFileBase64,
+        title: caption,
+        uploader: uploaderName,
+        timestamp: Date.now(),
+        status: 'pending'
+      };
+
+      try {
+        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', photoId);
+        await setDoc(docRef, newPhoto);
+
+        resetUploadForm();
+        document.getElementById('uploader-name').value = '';
+        document.getElementById('photo-caption').value = '';
+
+        showToast('Photo uploaded! Pending approval from Gjelly.');
+        
+        setTimeout(() => {
+          switchView('tv');
+        }, 1200);
+      } catch (err) {
+        console.error("Upload error:", err);
+        showToast('Upload failed');
+      }
+    };
+
+    // ADMIN AUTH
+    window.handleAdminLogin = function(e) {
+      e.preventDefault();
+      const userVal = document.getElementById('admin-user').value;
+      const passVal = document.getElementById('admin-pass').value;
+
+      if (userVal === ADMIN_CREDS.user && passVal === ADMIN_CREDS.pass) {
+        isAdminLoggedIn = true;
+        document.getElementById('login-error').classList.add('hidden');
+        document.getElementById('admin-login-card').classList.add('hidden');
+        document.getElementById('admin-panel').classList.remove('hidden');
+        document.getElementById('admin-name-display').textContent = ADMIN_CREDS.user;
+        renderAdminDashboard();
+        showToast('Miners Arms Admin Logged In');
+      } else {
+        document.getElementById('login-error').classList.remove('hidden');
+      }
+    };
+
+    window.handleAdminLogout = function() {
+      isAdminLoggedIn = false;
+      document.getElementById('admin-user').value = '';
+      document.getElementById('admin-pass').value = '';
+      document.getElementById('admin-login-card').classList.remove('hidden');
+      document.getElementById('admin-panel').classList.add('hidden');
+      showToast('Logged out');
+    };
+
+    window.switchAdminTab = function(tab) {
+      ['pending', 'live', 'archive'].forEach(t => {
+        const tabBtn = document.getElementById(`admin-tab-${t}`);
+        const contentEl = document.getElementById(`admin-content-${t}`);
+        
+        if (t === tab) {
+          tabBtn.className = "pb-3 text-gold-300 border-b-2 border-gold-500 flex items-center gap-2 transition-all font-semibold";
+          contentEl.classList.remove('hidden');
+        } else {
+          tabBtn.className = "pb-3 text-gold-500 hover:text-gold-200 flex items-center gap-2 transition-all";
+          contentEl.classList.add('hidden');
+        }
+      });
+      initLucideIcons();
+    };
+
+    function renderAdminDashboard() {
+      const pendingList = photos.filter(p => p.status === 'pending');
+      const liveList = photos.filter(p => p.status === 'approved');
+      const archiveList = photos.filter(p => p.status === 'archived');
+
+      document.getElementById('tab-pending-count').textContent = pendingList.length;
+      document.getElementById('tab-live-count').textContent = liveList.length;
+      document.getElementById('tab-archive-count').textContent = archiveList.length;
+
+      const pendingGrid = document.getElementById('pending-grid');
+      const pendingEmpty = document.getElementById('pending-empty');
+      pendingGrid.innerHTML = '';
+      if (pendingList.length === 0) {
+        pendingEmpty.classList.remove('hidden');
+      } else {
+        pendingEmpty.classList.add('hidden');
+        pendingList.forEach(p => pendingGrid.appendChild(createAdminPhotoCard(p, 'pending')));
+      }
+
+      const liveGrid = document.getElementById('live-grid');
+      const liveEmpty = document.getElementById('live-empty');
+      liveGrid.innerHTML = '';
+      if (liveList.length === 0) {
+        liveEmpty.classList.remove('hidden');
+      } else {
+        liveEmpty.classList.add('hidden');
+        liveList.forEach(p => liveGrid.appendChild(createAdminPhotoCard(p, 'live')));
+      }
+
+      const archiveGrid = document.getElementById('archive-grid');
+      const archiveEmpty = document.getElementById('archive-empty');
+      archiveGrid.innerHTML = '';
+      if (archiveList.length === 0) {
+        archiveEmpty.classList.remove('hidden');
+      } else {
+        archiveEmpty.classList.add('hidden');
+        archiveList.forEach(p => archiveGrid.appendChild(createAdminPhotoCard(p, 'archive')));
+      }
+
+      initLucideIcons();
+    }
+
+    function createAdminPhotoCard(photo, category) {
+      const card = document.createElement('div');
+      card.className = "bg-charcoal-900 border border-gold-800/40 rounded-2xl overflow-hidden shadow-xl flex flex-col group hover:border-gold-600/60 transition-all";
+
+      const formattedDate = new Date(photo.timestamp).toLocaleString(undefined, {
+        dateStyle: 'medium', timeStyle: 'short'
+      });
+
+      let actionsHtml = '';
+
+      if (category === 'pending') {
+        actionsHtml = `
+          <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-gold-900/60">
+            <button onclick="approvePhoto('${photo.id}')" class="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-md">
+              <i data-lucide="check" class="w-4 h-4"></i> Approve & TV Live
+            </button>
+            <button onclick="rejectPhoto('${photo.id}')" class="py-2 px-3 bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/50 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="x" class="w-4 h-4"></i> Reject
+            </button>
+          </div>
+        `;
+      } else if (category === 'live') {
+        actionsHtml = `
+          <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-gold-900/60">
+            <button onclick="archivePhoto('${photo.id}')" class="py-2 px-3 bg-charcoal-950 hover:bg-amber-950 text-amber-300 border border-amber-800/50 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="archive" class="w-3.5 h-3.5"></i> Archive
+            </button>
+            <button onclick="deletePhoto('${photo.id}')" class="py-2 px-3 bg-charcoal-800 hover:bg-rose-950 hover:text-rose-300 text-gold-500 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
+            </button>
+          </div>
+        `;
+      } else if (category === 'archive') {
+        actionsHtml = `
+          <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-gold-900/60">
+            <button onclick="restorePhotoToLive('${photo.id}')" class="py-2 px-3 bg-gold-600 hover:bg-gold-500 text-charcoal-950 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-md">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Restore Live
+            </button>
+            <button onclick="deletePhoto('${photo.id}')" class="py-2 px-3 bg-charcoal-800 hover:bg-rose-950 hover:text-rose-300 text-gold-500 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 transition-all">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
+            </button>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="relative h-48 bg-charcoal-950 overflow-hidden">
+          <img src="${photo.url}" alt="${photo.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+          <div class="absolute top-2 right-2">
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${
+              category === 'pending' ? 'bg-amber-600/90 text-white' : 
+              category === 'live' ? 'bg-emerald-600/90 text-white' : 'bg-charcoal-800/90 text-gold-300'
+            }">
+              ${photo.status}
+            </span>
+          </div>
+        </div>
+        <div class="p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <h4 class="font-bold text-gold-200 text-sm truncate">${photo.title || 'Untitled'}</h4>
+            <p class="text-xs text-gold-400 mt-0.5">By ${photo.uploader || 'Anonymous'}</p>
+            <p class="text-[11px] text-gold-600 mt-1 flex items-center gap-1">
+              <i data-lucide="calendar" class="w-3 h-3"></i> ${formattedDate}
+            </p>
+          </div>
+          ${actionsHtml}
+        </div>
+      `;
+
+      return card;
+    }
+
+    window.approvePhoto = async function(id) {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', id);
+      await updateDoc(docRef, { status: 'approved', timestamp: Date.now() });
+      showToast('Photo approved for Miners Arms TV!');
+    };
+
+    window.rejectPhoto = async function(id) {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', id);
+      await deleteDoc(docRef);
+      showToast('Photo rejected');
+    };
+
+    window.archivePhoto = async function(id) {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', id);
+      await updateDoc(docRef, { status: 'archived' });
+      showToast('Photo archived');
+    };
+
+    window.restorePhotoToLive = async function(id) {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', id);
+      await updateDoc(docRef, { status: 'approved', timestamp: Date.now() });
+      showToast('Photo restored to Live TV View!');
+    };
+
+    window.deletePhoto = async function(id) {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', id);
+      await deleteDoc(docRef);
+      showToast('Photo deleted');
+    };
+
+    window.simulate6MonthAgeing = async function() {
+      const SIX_MONTHS_MS = (181 * 24 * 60 * 60 * 1000);
+      const livePhotos = photos.filter(p => p.status === 'approved');
+      
+      if (livePhotos.length === 0) {
+        showToast('No live photos to age.');
+        return;
+      }
+
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'photos', livePhotos[0].id);
+      await updateDoc(docRef, { timestamp: Date.now() - SIX_MONTHS_MS, status: 'archived' });
+      showToast(`Aged photo "${livePhotos[0].title}" > 6 months into Archive!`);
+    };
+
+    function updatePendingBadge() {
+      const pendingCount = photos.filter(p => p.status === 'pending').length;
+      const badge = document.getElementById('pending-badge');
+      if (pendingCount > 0) {
+        badge.textContent = pendingCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    window.switchView = function(targetView) {
+      document.getElementById('view-tv').classList.add('hidden');
+      document.getElementById('view-upload').classList.add('hidden');
+      document.getElementById('view-admin').classList.add('hidden');
+
+      ['tv', 'upload', 'admin'].forEach(v => {
+        const btn = document.getElementById(`nav-btn-${v}`);
+        btn.className = "px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-medium text-gold-300 hover:text-white hover:bg-charcoal-800 flex items-center gap-2 transition-all";
+      });
+
+      const activeBtn = document.getElementById(`nav-btn-${targetView}`);
+      activeBtn.className = "px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all bg-gold-600 text-charcoal-950 shadow-lg shadow-gold-600/20";
+
+      const targetEl = document.getElementById(`view-${targetView}`);
+      targetEl.classList.remove('hidden');
+
+      if (targetView === 'admin' && isAdminLoggedIn) {
+        renderAdminDashboard();
+      }
+
+      initLucideIcons();
+    };
+
+    function initLucideIcons() {
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.textContent = message;
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3000);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initApp();
+      initLucideIcons();
+      startClock();
+      startSlideshowLoop();
+    });
+  </script>
+</body>
+</html>
