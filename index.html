@@ -614,7 +614,7 @@
         &copy; 2026 The Miners Arms. All rights reserved. Live Cloud Picture Hub.
     </footer>
 
-    <!-- High-Performance Optimized Client Script -->
+    <!-- Pure JSONBin Cloud Engine Script -->
     <script>
         const BIN_ID = '6ad61a48ffd5d1605378c604';
         const API_KEY = '$2a$10$btbJxcj9cYZC.CQ/SOMuA.I/CuBmXeloxgJgH6clH25r7uIfarJgu';
@@ -627,14 +627,14 @@
         let lastKnownChecksum = '';
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Tab Navigation Event Bindings
+            // Tab Navigation
             document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     switchTab(e.currentTarget.getAttribute('data-tab'));
                 });
             });
 
-            // Upload Box Event Bindings
+            // File Upload Trigger & Preview
             const dropzoneBox = document.getElementById('dropzoneBox');
             const fileInput = document.getElementById('fileInput');
             if (dropzoneBox && fileInput) {
@@ -642,7 +642,7 @@
                 fileInput.addEventListener('change', previewFile);
             }
 
-            // Form Submit & Action Event Bindings
+            // Forms & Buttons
             const uploadForm = document.getElementById('uploadForm');
             if (uploadForm) uploadForm.addEventListener('submit', handleImageUpload);
 
@@ -655,7 +655,7 @@
             const simulateAgingBtn = document.getElementById('simulateAgingBtn');
             if (simulateAgingBtn) simulateAgingBtn.addEventListener('click', simulateAging);
 
-            // Initial Cloud Load
+            // Initial Cloud Fetch
             loadDataFromBin();
         });
 
@@ -689,7 +689,7 @@
                     const ctx = canvas.getContext('2d');
                     let width = img.width;
                     let height = img.height;
-                    const maxDim = 800; // Optimized dimension for fast cloud uploads
+                    const maxDim = 600; // Strongly optimized to prevent JSONBin payload limit errors
 
                     if (width > height && width > maxDim) {
                         height *= maxDim / width;
@@ -702,7 +702,7 @@
                     canvas.width = width;
                     canvas.height = height;
                     ctx.drawImage(img, 0, 0, width, height);
-                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.6);
 
                     const previewImg = document.getElementById('imagePreview');
                     const previewBox = document.getElementById('previewBox');
@@ -724,7 +724,7 @@
 
             const submitBtn = document.getElementById('submitBtn');
             if (submitBtn) {
-                submitBtn.innerText = 'Uploading to Cloud Bin...';
+                submitBtn.innerText = 'Uploading to JSONBin...';
                 submitBtn.disabled = true;
             }
 
@@ -736,7 +736,9 @@
             };
 
             await loadDataFromBin();
+            if (!appData.photos) appData.photos = [];
             appData.photos.push(newPhoto);
+            
             const success = await saveDataToBin();
 
             if (submitBtn) {
@@ -745,14 +747,14 @@
             }
 
             if (success) {
-                showAlert('uploadAlert', 'Picture successfully uploaded! Awaiting admin review.', 'success');
+                showAlert('uploadAlert', 'Picture uploaded successfully! Awaiting admin review.', 'success');
                 const uploadForm = document.getElementById('uploadForm');
                 const previewBox = document.getElementById('previewBox');
                 if (uploadForm) uploadForm.reset();
                 if (previewBox) previewBox.style.display = 'none';
                 selectedFileBase64 = null;
             } else {
-                showAlert('uploadAlert', 'Upload failed. Please check your internet connection.', 'error');
+                showAlert('uploadAlert', 'Upload failed. The image may be too large or check API key.', 'error');
             }
         }
 
@@ -774,6 +776,7 @@
             }
         }
 
+        // --- JSONBin REST API Storage Engine ---
         async function loadDataFromBin() {
             try {
                 const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
@@ -800,7 +803,7 @@
                     }
                 }
             } catch (err) {
-                console.warn('Cloud sync background note:', err);
+                console.warn('JSONBin fetch note:', err);
             }
         }
 
@@ -818,9 +821,11 @@
                     lastKnownChecksum = JSON.stringify(appData.photos);
                     if (isAdminLoggedIn) renderAdminQueues();
                     return true;
+                } else {
+                    console.error('JSONBin server error status:', res.status);
                 }
             } catch (err) {
-                console.error('Cloud save error:', err);
+                console.error('JSONBin save error exception:', err);
             }
             return false;
         }
@@ -933,7 +938,6 @@
                 return;
             }
 
-            // Only rebuild slideshow DOM if slide count changed
             const existingSlides = screen.querySelectorAll('.tv-slide');
             if (existingSlides.length !== livePhotos.length) {
                 const shuffled = [...livePhotos].sort(() => Math.random() - 0.5);
@@ -978,7 +982,7 @@
             setTimeout(() => { el.style.display = 'none'; }, 6000);
         }
 
-        // Optimized Cloud Heartbeat Polling (every 3 seconds)
+        // Live JSONBin Polling Heartbeat (every 3 seconds)
         setInterval(() => {
             loadDataFromBin();
             checkAutoArchive();
