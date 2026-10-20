@@ -614,7 +614,7 @@
         &copy; 2026 The Miners Arms. All rights reserved. Cloudinary & JSONBin Hub.
     </footer>
 
-    <!-- Race-Condition Free Engine Script -->
+    <!-- Bulletproof Persistent Engine Script -->
     <script>
         const JSONBIN_BIN_ID = '6ad61a48ffd5d1605378c604';
         const JSONBIN_API_KEY = '$2a$10$btbJxcj9cYZC.CQ/SOMuA.I/CuBmXeloxgJgH6clH25r7uIfarJgu';
@@ -627,7 +627,18 @@
         let currentSlideIndex = 0;
         let slideshowInterval = null;
         let isAdminLoggedIn = false;
-        let isSaving = false; // Prevents overlapping concurrent saves
+        let isSaving = false;
+
+        // Initialize from LocalStorage immediately to prevent blank flashes on refresh
+        const localBackup = localStorage.getItem('miners_arms_backup');
+        if (localBackup) {
+            try {
+                const parsed = JSON.parse(localBackup);
+                if (parsed && Array.isArray(parsed.photos) && parsed.photos.length > 0) {
+                    appData = parsed;
+                }
+            } catch (e) {}
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => {
@@ -655,6 +666,11 @@
             const simulateAgingBtn = document.getElementById('simulateAgingBtn');
             if (simulateAgingBtn) simulateAgingBtn.addEventListener('click', simulateAging);
 
+            // Render whatever we have right away
+            if (isAdminLoggedIn) renderAdminQueues();
+            initSlideshow();
+
+            // Then fetch fresh data from cloud
             loadDataFromBin();
         });
 
@@ -774,9 +790,9 @@
             }
         }
 
-        // --- Thread-Safe JSONBin Engine ---
+        // --- Persistent JSONBin Engine with Local Backup ---
         async function loadDataFromBin() {
-            if (isSaving) return; // Do not poll while writing to prevent overwrites
+            if (isSaving) return;
             try {
                 const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_API_KEY },
@@ -785,8 +801,10 @@
                 if (res.ok) {
                     const json = await res.json();
                     if (json && json.record && Array.isArray(json.record.photos)) {
-                        // Only update if remote bin actually contains items or matches expected structure
-                        appData = json.record;
+                        if (json.record.photos.length > 0 || !appData.photos || appData.photos.length === 0) {
+                            appData = json.record;
+                            localStorage.setItem('miners_arms_backup', JSON.stringify(appData));
+                        }
                         if (isAdminLoggedIn) renderAdminQueues();
                         const tvTab = document.getElementById('tab-tv');
                         if (tvTab && tvTab.classList.contains('active')) {
@@ -795,14 +813,14 @@
                     }
                 }
             } catch (err) {
-                console.warn('JSONBin fetch note:', err);
+                console.warn('JSONBin fetch note (using local cache):', err);
             }
         }
 
         async function modifyRemoteData(mutatorFn) {
             isSaving = true;
             try {
-                // Step A: Fetch absolute latest from cloud right now
+                // Step A: Fetch absolute latest from cloud
                 const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_API_KEY },
                     cache: 'no-store'
@@ -810,15 +828,20 @@
                 if (res.ok) {
                     const json = await res.json();
                     if (json && json.record && Array.isArray(json.record.photos)) {
-                        appData = json.record;
+                        if (json.record.photos.length >= (appData.photos ? appData.photos.length : 0)) {
+                            appData = json.record;
+                        }
                     }
                 }
 
-                // Step B: Apply mutation (add, approve, delete)
+                // Step B: Apply mutation
                 if (!Array.isArray(appData.photos)) appData.photos = [];
                 mutatorFn(appData.photos);
 
-                // Step C: Push back to JSONBin
+                // Step C: Save to LocalStorage immediately
+                localStorage.setItem('miners_arms_backup', JSON.stringify(appData));
+
+                // Step D: Push back to JSONBin
                 const putRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'PUT',
                     headers: {
@@ -991,13 +1014,11 @@
             setTimeout(() => { el.style.display = 'none'; }, 6000);
         }
 
-        // Live Poll Heartbeat (every 4 seconds)
+        // Live Poll Heartbeat (every 5 seconds)
         setInterval(() => {
             loadDataFromBin();
             checkAutoArchive();
-        }, 4000);
+        }, 5000);
     </script>
 </body>
 </html>
-
-```
