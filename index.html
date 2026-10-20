@@ -12,7 +12,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Your exact Firebase configuration
+        // Firebase Configuration
         const firebaseConfig = {
           apiKey: "AIzaSyDfoySaIshh6WDekGK2c_ybxyqqlCOEW7g",
           authDomain: "minerspictures.firebaseapp.com",
@@ -24,7 +24,7 @@
           measurementId: "G-62MLMY1VV7"
         };
 
-        // Cloudinary Configuration (100% Free Image Storage)
+        // Cloudinary Configuration
         const CLOUDINARY_CLOUD_NAME = 'vju0scal';
         const CLOUDINARY_UPLOAD_PRESET = 'miners_preset';
 
@@ -40,9 +40,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    switchTab(e.currentTarget.getAttribute('data-tab'));
-                });
+                btn.addEventListener('click', (e) => switchTab(e.currentTarget.getAttribute('data-tab')));
             });
 
             const dropzoneBox = document.getElementById('dropzoneBox');
@@ -64,7 +62,7 @@
             const simulateAgingBtn = document.getElementById('simulateAgingBtn');
             if (simulateAgingBtn) simulateAgingBtn.addEventListener('click', () => simulateAging(db));
 
-            // Real-time Firestore Sync across all devices
+            // Initialize Real-time Firestore Sync
             initRealtimeSync(db);
         });
 
@@ -116,7 +114,6 @@
             }
 
             try {
-                // 1. Upload high-res image to Cloudinary
                 const formData = new FormData();
                 formData.append('file', selectedFileObject);
                 formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
@@ -132,7 +129,6 @@
 
                 if (submitBtn) submitBtn.innerText = 'Saving to Real-time Database...';
 
-                // 2. Add document reference into Firestore Database
                 await addDoc(collection(db, "photos"), {
                     dataUrl: imageUrl,
                     status: 'pending',
@@ -188,8 +184,6 @@
                     });
                 });
 
-                checkAutoArchive(db, cachedPhotos);
-
                 if (isAdminLoggedIn) renderAdminQueues();
                 
                 const tvTab = document.getElementById('tab-tv');
@@ -221,16 +215,6 @@
             }
         };
 
-        async function checkAutoArchive(db, photos) {
-            const sixMonthsMs = 180 * 24 * 60 * 60 * 1000;
-            const now = Date.now();
-            for (let p of photos) {
-                if (p.status === 'live' && (now - p.timestamp > sixMonthsMs)) {
-                    await updateDoc(doc(db, "photos", p.id), { status: 'archived' });
-                }
-            }
-        }
-
         window.simulateAging = async function(db) {
             const sevenMonthsAgo = Date.now() - (200 * 24 * 60 * 60 * 1000);
             for (let p of cachedPhotos) {
@@ -238,7 +222,7 @@
                     await updateDoc(doc(db, "photos", p.id), { timestamp: sevenMonthsAgo, status: 'archived' });
                 }
             }
-            alert('Simulation applied: All live pictures moved to archive (> 6 months old).');
+            alert('Simulation applied: All live pictures moved to archive.');
         };
 
         function renderAdminQueues() {
@@ -273,7 +257,7 @@
             const dateStr = new Date(photo.timestamp).toLocaleDateString();
             return `
                 <div class="photo-card">
-                    <img src="${photo.dataUrl}" class="photo-thumb" alt="Upload">
+                    <img src="${photo.dataUrl}" class="photo-thumb" alt="Upload" loading="lazy">
                     <div class="photo-info">
                         <div class="photo-meta">Added: ${dateStr}</div>
                         <div class="photo-actions">${actionsHTML}</div>
@@ -289,6 +273,7 @@
             if (!screen) return;
 
             if (livePhotos.length === 0) {
+                if (slideshowInterval) clearInterval(slideshowInterval);
                 screen.innerHTML = `
                     <div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);">
                         <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">No live pictures available yet.</p>
@@ -301,8 +286,7 @@
 
             const existingSlides = screen.querySelectorAll('.tv-slide');
             if (existingSlides.length !== livePhotos.length) {
-                const shuffled = [...livePhotos].sort(() => Math.random() - 0.5);
-                screen.innerHTML = shuffled.map((p, idx) => `
+                screen.innerHTML = livePhotos.map((p, idx) => `
                     <div class="tv-slide ${idx === 0 ? 'active' : ''}" data-index="${idx}">
                         <img src="${p.dataUrl}" alt="Live slide">
                     </div>
@@ -310,7 +294,7 @@
 
                 if (slideshowInterval) clearInterval(slideshowInterval);
                 currentSlideIndex = 0;
-                if (counter) counter.innerText = `Slide 1 / ${shuffled.length}`;
+                if (counter) counter.innerText = `Slide 1 / ${livePhotos.length}`;
 
                 slideshowInterval = setInterval(() => {
                     const slides = screen.querySelectorAll('.tv-slide');
@@ -694,4 +678,87 @@
                         <input type="file" id="fileInput" accept="image/*">
                     </div>
 
-                    <div id
+                    <div id="previewBox" class="preview-container">
+                        <img id="imagePreview" class="preview-img" alt="Preview">
+                        <div style="margin-top: 1rem;">
+                            <button type="submit" class="btn" id="submitBtn">🚀 Submit Picture for Approval</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- TAB 2: TV SLIDESHOW -->
+        <section id="tab-tv" class="tab-content">
+            <div class="tv-wrapper">
+                <div class="tv-screen" id="tvScreen">
+                    <div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);">
+                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Connecting to Firebase Real-time Database...</p>
+                    </div>
+                </div>
+                <div class="tv-hud">
+                    <div class="tv-badge"><div class="live-dot"></div> THE MINERS ARMS LIVE TV</div>
+                    <div id="tvCounter" class="tv-badge" style="font-family:'Plus Jakarta Sans'; font-size: 0.85rem;">0 / 0 Slides</div>
+                </div>
+            </div>
+            <div class="tv-controls-bar">
+                <button class="btn" id="fullscreenBtn">🖥️ Enter Fullscreen Mode</button>
+            </div>
+        </section>
+
+        <!-- TAB 3: ADMIN PANEL -->
+        <section id="tab-admin" class="tab-content">
+            <!-- Login View -->
+            <div id="adminLoginCard" class="card login-box">
+                <h2>Admin Portal</h2>
+                <div id="loginAlert" class="alert-msg"></div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" id="adminUser" class="form-input" required autocomplete="username" placeholder="Enter username">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="adminPass" class="form-input" required autocomplete="current-password" placeholder="Enter password">
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%;">Sign In</button>
+                </form>
+            </div>
+
+            <!-- Dashboard View -->
+            <div id="adminDashboard" style="display: none;">
+                <div class="card" style="margin-bottom: 2rem;">
+                    <div class="section-header">
+                        <h2>Pending Moderation Queue</h2>
+                        <span id="pendingCountBadge" class="badge-count">0 Pending</span>
+                    </div>
+                    <div id="pendingQueue" class="admin-grid"></div>
+                </div>
+
+                <div class="card" style="margin-bottom: 2rem;">
+                    <div class="section-header">
+                        <h2>Live Active Display Photos</h2>
+                        <div>
+                            <button class="btn btn-secondary" id="simulateAgingBtn" style="margin-right: 0.75rem; font-size: 0.85rem; padding: 0.5rem 1rem;">⏳ Simulate 6-Mo Aging</button>
+                            <span id="liveCountBadge" class="badge-count">0 Live</span>
+                        </div>
+                    </div>
+                    <div id="liveQueue" class="admin-grid"></div>
+                </div>
+
+                <div class="card">
+                    <div class="section-header">
+                        <h2>Archived Pictures ( > 6 Months)</h2>
+                        <span id="archiveCountBadge" class="badge-count">0 Archived</span>
+                    </div>
+                    <div id="archiveQueue" class="admin-grid"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        &copy; 2026 The Miners Arms. All rights reserved. Cloudinary & Firebase Firestore Hub.
+    </footer>
+</body>
+</html>
