@@ -266,7 +266,7 @@
                 live.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
 
             archiveQ.innerHTML = archived.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No archived pictures.</p>` :
-                archiveQ.innerHTML = archived.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-restore" onclick="updatePhotoStatus('${p.id}', 'live')">Restore</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
+                archived.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-restore" onclick="updatePhotoStatus('${p.id}', 'live')">Restore</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
         }
 
         function createPhotoCardHTML(photo, actionsHTML) {
@@ -662,4 +662,36 @@
                 <path d="M150 40 L140 30 L50 120 L60 130 Z" fill="currentColor"/>
                 <path d="M60 110 C60 70, 90 50, 100 50 C110 50, 140 70, 140 110 L145 135 C145 140, 140 145, 135 145 L65 145 C60 145, 55 140, 55 135 Z" fill="none" stroke="currentColor" stroke-width="8"/>
                 <circle cx="100" cy="115" r="16" fill="currentColor"/>
-                <path d="M55 135 L145 135 L
+                <path d="M55 135 L145 135 L150 155 C150 160, 145 165, 140 165 L60 165 C55 165, 50 160, 50 155 Z" fill="currentColor"/>
+            </svg>
+            <div>
+                <h1 class="brand-title">The Miners Arms</h1>
+                <p class="brand-subtitle">Arms</p>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="upload">📸 Upload Picture</button>
+        <button class="tab-btn" data-tab="tv">📺 Live TV Slideshow</button>
+        <button class="tab-btn admin-nav-btn" data-tab="admin">🔑 Admin Login</button>
+    </nav>
+
+    <main>
+        <!-- TAB 1: UPLOAD -->
+        <section id="tab-upload" class="tab-content active">
+            <div class="card" style="max-width: 650px; margin: 0 auto;">
+                <h2>Share Your Memories</h2>
+                <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">Upload your favorite moments to be reviewed and displayed on our live venue screens.</p>
+                
+                <div id="uploadAlert" class="alert-msg"></div>
+
+                <form id="uploadForm">
+                    <div class="upload-dropzone" id="dropzoneBox">
+                        <div class="upload-icon">📷</div>
+                        <p style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">Click to browse or drag & drop picture</p>
+                        <p style="color: var(--text-muted); font-size: 0.85rem;">Supports JPG, PNG, WEBP</p>
+                        <input type="file" id="fileInput" accept="image/*">
+                    </div>
+
+                    <div id
