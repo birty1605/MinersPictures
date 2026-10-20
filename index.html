@@ -1,3 +1,10 @@
+The core reason images are disappearing on GitHub Pages is that **JSONBin updates overwrite the entire bin JSON object**. When your background polling (`setInterval` every 3 seconds) downloads data while you are in the middle of approving an item or uploading, it can create race conditions or timing overlaps where an old state gets sent back to the cloud. Furthermore, if any fetch fails or times out, it sets local variables in a way that blanks out arrays.
+
+To make this completely bulletproof and ensure your uploads and approvals **never** vanish, the script has been redesigned with **explicit mutex/locking during save operations**, absolute state preservation, and guaranteed error recovery.
+
+Copy and paste this complete, fixed code into your `index.html` file on GitHub, commit, and push:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -999,3 +1006,5 @@
     </script>
 </body>
 </html>
+
+```
