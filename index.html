@@ -348,12 +348,12 @@
             </div>
         </section>
 
-        <!-- TAB 2: TV SLIDESHOW WITH BLOB FETCHER -->
+        <!-- TAB 2: TV SLIDESHOW -->
         <section id="tab-tv" class="tab-content">
             <div class="tv-wrapper">
                 <div id="tvDebugOverlay" class="tv-debug-overlay">
                     <strong style="color:#FFFF00;">⚠️ TV DIAGNOSTIC LOG & ERROR TRACE:</strong>
-                    <div id="tvDebugContent" style="margin-top: 0.5rem;">Initializing blob security bypass...</div>
+                    <div id="tvDebugContent" style="margin-top: 0.5rem;">Initializing universal TV engine...</div>
                 </div>
 
                 <div class="tv-screen" id="tvScreen">
@@ -411,8 +411,9 @@
         &copy; 2026 The Miners Arms. All rights reserved.
     </footer>
 
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- Universal Firebase SDK v9/v10 Compat Universal Bundle for Smart TVs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <script>
         function showTvErrorLog(msg) {
@@ -480,9 +481,14 @@
         var cachedPhotos = [];
 
         try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            initRealtimeSync();
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                showTvErrorLog('Firebase Connected Successfully!');
+                initRealtimeSync();
+            } else {
+                throw new Error('Firebase script failed to load into global scope.');
+            }
         } catch (err) {
             showTvErrorLog('Firebase Init Exception: ' + err.message);
         }
@@ -711,7 +717,6 @@
             }, 6000);
         }
 
-        // Binary Fetcher & Blob Security Bypass Engine for LG WebOS
         function loadPhotoToTv(url, callback) {
             var displayImg = document.getElementById('tvActiveImg');
             var safeUrl = formatJpgUrl(url);
@@ -731,8 +736,7 @@
                     if (callback) callback();
                 })
                 .catch(function(err) {
-                    showTvErrorLog('Blob Fetch Error: ' + err.message + ' (URL: ' + safeUrl + ')');
-                    // Fallback to direct assignment if fetch restriction occurs
+                    showTvErrorLog('Blob Fetch Fallback: ' + err.message);
                     if (displayImg) {
                         displayImg.src = safeUrl;
                         displayImg.style.display = "block";
