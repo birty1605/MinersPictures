@@ -163,14 +163,14 @@
             object-fit: contain;
         }
 
-        /* LG WebOS Fullscreen Responsive TV Frame Layout */
+        /* LG WebOS Fullscreen Responsive TV Frame Layout - Expanded to Fill Screen */
         .tv-wrapper {
             background-color: #000000;
             border-radius: var(--radius-lg);
             overflow: hidden;
             border: 4px solid var(--gold-metallic);
             position: relative;
-            height: 72vh;
+            height: 78vh;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -192,30 +192,9 @@
         .tv-display-frame {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover; /* Expanded to fill entire screen bounds */
             display: block;
             background-color: #000000;
-        }
-
-        /* High-Visibility Debugger Log Panel for TV Screen */
-        .tv-debug-overlay {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            right: 1rem;
-            background: rgba(20, 0, 0, 0.95);
-            border: 2px solid var(--accent-red);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            color: #FF9999;
-            font-family: monospace;
-            font-size: 0.95rem;
-            z-index: 20;
-            display: none;
-            max-height: 40vh;
-            overflow-y: auto;
-            text-align: left;
-            word-break: break-all;
         }
 
         .tv-hud {
@@ -226,7 +205,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.85);
             padding: 1rem 1.5rem;
             border-radius: var(--radius-md);
             border: 2px solid var(--gold-metallic);
@@ -351,13 +330,8 @@
         <!-- TAB 2: TV SLIDESHOW -->
         <section id="tab-tv" class="tab-content">
             <div class="tv-wrapper">
-                <div id="tvDebugOverlay" class="tv-debug-overlay">
-                    <strong style="color:#FFFF00;">⚠️ TV DIAGNOSTIC LOG & ERROR TRACE:</strong>
-                    <div id="tvDebugContent" style="margin-top: 0.5rem;">Initializing XHR TV Engine...</div>
-                </div>
-
                 <div class="tv-screen" id="tvScreen">
-                    <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting via XHR...</p>
+                    <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting to Live Feed...</p>
                     <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
                 </div>
                 <div class="tv-hud">
@@ -412,19 +386,6 @@
     </footer>
 
     <script>
-        function showTvErrorLog(msg) {
-            var overlay = document.getElementById('tvDebugOverlay');
-            var content = document.getElementById('tvDebugContent');
-            if (overlay && content) {
-                overlay.style.display = 'block';
-                content.innerHTML += '<div>> ' + msg + '</div>';
-            }
-        }
-
-        window.onerror = function(msg, url, line) {
-            showTvErrorLog('JS Error: ' + msg + ' (Line ' + line + ')');
-        };
-
         window.switchTab = function(tabId) {
             var contents = document.querySelectorAll('.tab-content');
             for (var i = 0; i < contents.length; i++) {
@@ -468,11 +429,10 @@
         var cachedPhotos = [];
 
         try {
-            showTvErrorLog('XHR Engine Initialized.');
             initRestSync();
             pollInterval = setInterval(initRestSync, 10000);
         } catch (err) {
-            showTvErrorLog('Init Exception: ' + err.message);
+            console.error(err);
         }
 
         document.addEventListener('keydown', function(e) {
@@ -507,7 +467,6 @@
             reader.readAsDataURL(file);
         }
 
-        // Universal XHR wrapper for Cloudinary & Firestore uploads
         function xhrRequest(method, url, data, callback) {
             var xhr = new XMLHttpRequest();
             xhr.open(method, url, true);
@@ -596,14 +555,10 @@
             }
         }
 
-        // XHR Firestore Reader
         function initRestSync() {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos';
             xhrRequest('GET', url, null, function(err, data) {
-                if (err) {
-                    showTvErrorLog('XHR Sync Error: ' + err.message);
-                    return;
-                }
+                if (err) return;
                 cachedPhotos = [];
                 if (data && data.documents) {
                     for (var i = 0; i < data.documents.length; i++) {
@@ -631,7 +586,6 @@
             });
         }
 
-        // XHR Firestore Writer (Add)
         function restFirestoreAdd(photoObj) {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos';
             var payload = {
@@ -659,7 +613,6 @@
             });
         }
 
-        // XHR Firestore Updater
         function restFirestoreUpdate(id, updates) {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos/' + id + '?updateMask.fieldPaths=status&updateMask.fieldPaths=timestamp';
             var fieldsObj = {
@@ -673,7 +626,6 @@
             });
         }
 
-        // XHR Firestore Deleter
         function restFirestoreDelete(id) {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos/' + id;
             var xhr = new XMLHttpRequest();
@@ -769,7 +721,6 @@
             var displayImg = document.getElementById('tvActiveImg');
             var safeUrl = formatJpgUrl(url);
 
-            // Direct assignment bypassing fetch restrictions completely on legacy TV browsers
             if (displayImg) {
                 displayImg.src = safeUrl;
                 displayImg.style.display = "block";
