@@ -297,7 +297,7 @@
     <nav class="nav-tabs">
         <button type="button" class="tab-btn active" id="btn-upload" tabindex="0" onclick="switchTab('upload')">📸 Upload Picture</button>
         <button type="button" class="tab-btn" id="btn-tv" tabindex="0" onclick="switchTab('tv')">📺 Live TV Slideshow</button>
-        <button type="button" class="tab-btn" id="btn-admin" tabindex="0" onclick="switchTab('admin')">🔑 Admin Login</button>
+        <button type="button" class="tab-btn admin-nav-btn" id="btn-admin" tabindex="0" onclick="switchTab('admin')">🔑 Admin Login</button>
     </nav>
 
     <main>
@@ -557,14 +557,20 @@
             }
         }
 
+        // Bulletproof sync without ordering constraints that cause TV silent crashes
         function initRealtimeSync() {
             if (!db) return;
-            db.collection("photos").orderBy("timestamp", "desc").onSnapshot(function(snapshot) {
+            db.collection("photos").onSnapshot(function(snapshot) {
                 cachedPhotos = [];
                 snapshot.forEach(function(docSnap) {
                     var data = docSnap.data();
                     data.id = docSnap.id;
                     cachedPhotos.push(data);
+                });
+
+                // Sort safely in JavaScript instead of Firebase
+                cachedPhotos.sort(function(a, b) {
+                    return (b.timestamp || 0) - (a.timestamp || 0);
                 });
 
                 if (isAdminLoggedIn) renderAdminQueues();
@@ -573,6 +579,8 @@
                 if (tvTab && tvTab.classList.contains('active')) {
                     initSlideshow();
                 }
+            }, function(error) {
+                console.error("Firestore sync error:", error);
             });
         }
 
@@ -627,7 +635,6 @@
             db.collection("photos").doc(id).delete();
         }
 
-        // Canvas Rendering Engine optimized for LG WebOS TV Browser
         function initSlideshow() {
             var livePhotos = cachedPhotos.filter(function(p) { return p.status === 'live'; });
             var counter = document.getElementById('tvCounter');
@@ -647,7 +654,6 @@
                 return;
             }
 
-            // Preload images into memory for smooth canvas painting
             preloadedImages = [];
             var loadedCount = 0;
 
