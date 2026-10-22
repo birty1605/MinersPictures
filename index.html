@@ -230,7 +230,7 @@
             border-radius: 50%;
         }
 
-        .tv-controls-bar { margin-top: 1rem; display: flex; justify-content: center; }
+        .tv-controls-bar { margin-top: 1rem; display: flex; justify-content: center; gap: 1rem; }
         .login-box { max-width: 400px; margin: 2rem auto; text-align: left; }
         .form-group { margin-bottom: 1.25rem; }
         .form-label { display: block; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; }
@@ -339,7 +339,8 @@
                 </div>
             </div>
             <div class="tv-controls-bar">
-                <button type="button" class="btn" id="fullscreenBtn" tabindex="0" onclick="enterFullscreen()">🖥️ Enter Fullscreen Mode</button>
+                <button type="button" class="btn" id="refreshTvBtn" tabindex="0" onclick="fetchPhotosFromDb()">🔄 Force Refresh TV Data</button>
+                <button type="button" class="btn btn-secondary" id="fullscreenBtn" tabindex="0" onclick="enterFullscreen()">🖥️ Fullscreen</button>
             </div>
         </section>
 
@@ -426,7 +427,7 @@
             }
 
             if (tabId === 'tv') {
-                initSlideshow();
+                fetchPhotosFromDb();
             } else if (tabId === 'admin' && isAdminLoggedIn) {
                 renderAdminQueues();
             }
@@ -448,6 +449,7 @@
         var selectedFileObject = null;
         var currentSlideIndex = 0;
         var slideshowInterval = null;
+        var autoRefreshInterval = null;
         var isAdminLoggedIn = false;
         var cachedPhotos = [];
         var preloadedImages = [];
@@ -455,7 +457,9 @@
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
-            initRealtimeSync();
+            fetchPhotosFromDb();
+            // Auto poll DB every 15 seconds to sync data without crashing TV web sockets
+            setInterval(fetchPhotosFromDb, 15000);
         } catch (err) {
             console.error("Firebase init error:", err);
         }
@@ -531,6 +535,7 @@
                 document.getElementById('uploadForm').reset();
                 document.getElementById('previewBox').style.display = 'none';
                 selectedFileObject = null;
+                fetchPhotosFromDb();
             })
             .catch(function(err) {
                 console.error(err);
@@ -557,18 +562,17 @@
             }
         }
 
-        // Bulletproof sync without ordering constraints that cause TV silent crashes
-        function initRealtimeSync() {
+        // Safe standard fetch method replacing real-time listeners for TV stability
+        function fetchPhotosFromDb() {
             if (!db) return;
-            db.collection("photos").onSnapshot(function(snapshot) {
+            db.collection("photos").get().then(function(querySnapshot) {
                 cachedPhotos = [];
-                snapshot.forEach(function(docSnap) {
+                querySnapshot.forEach(function(docSnap) {
                     var data = docSnap.data();
                     data.id = docSnap.id;
                     cachedPhotos.push(data);
                 });
 
-                // Sort safely in JavaScript instead of Firebase
                 cachedPhotos.sort(function(a, b) {
                     return (b.timestamp || 0) - (a.timestamp || 0);
                 });
@@ -579,8 +583,8 @@
                 if (tvTab && tvTab.classList.contains('active')) {
                     initSlideshow();
                 }
-            }, function(error) {
-                console.error("Firestore sync error:", error);
+            }).catch(function(error) {
+                console.error("Error fetching photos:", error);
             });
         }
 
@@ -627,12 +631,16 @@
             if (!db) return;
             var updates = { status: newStatus };
             if (newStatus === 'live') updates.timestamp = Date.now();
-            db.collection("photos").doc(id).update(updates);
+            db.collection("photos").doc(id).update(updates).then(function() {
+                fetchPhotosFromDb();
+            });
         }
 
         function deletePhoto(id) {
             if (!db || !confirm('Delete picture?')) return;
-            db.collection("photos").doc(id).delete();
+            db.collection("photos").doc(id).delete().then(function() {
+                fetchPhotosFromDb();
+            });
         }
 
         function initSlideshow() {
