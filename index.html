@@ -353,11 +353,11 @@
             <div class="tv-wrapper">
                 <div id="tvDebugOverlay" class="tv-debug-overlay">
                     <strong style="color:#FFFF00;">⚠️ TV DIAGNOSTIC LOG & ERROR TRACE:</strong>
-                    <div id="tvDebugContent" style="margin-top: 0.5rem;">Initializing REST API database connector...</div>
+                    <div id="tvDebugContent" style="margin-top: 0.5rem;">Initializing XHR TV Engine...</div>
                 </div>
 
                 <div class="tv-screen" id="tvScreen">
-                    <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting via REST API...</p>
+                    <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting via XHR...</p>
                     <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
                 </div>
                 <div class="tv-hud">
@@ -467,11 +467,10 @@
         var isAdminLoggedIn = false;
         var cachedPhotos = [];
 
-        // Initialize polling sync via pure REST API (No SDK Required)
         try {
-            showTvErrorLog('REST API Engine Initialized.');
+            showTvErrorLog('XHR Engine Initialized.');
             initRestSync();
-            pollInterval = setInterval(initRestSync, 10000); // Poll database every 10 seconds
+            pollInterval = setInterval(initRestSync, 10000);
         } catch (err) {
             showTvErrorLog('Init Exception: ' + err.message);
         }
@@ -508,6 +507,32 @@
             reader.readAsDataURL(file);
         }
 
+        // Universal XHR wrapper for Cloudinary & Firestore uploads
+        function xhrRequest(method, url, data, callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.open(method, url, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var json = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+                            callback(null, json);
+                        } catch (e) {
+                            callback(null, {});
+                        }
+                    } else {
+                        callback(new Error('HTTP Status: ' + xhr.status));
+                    }
+                }
+            };
+            if (data && typeof data === 'object' && !(data instanceof FormData)) {
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send(JSON.stringify(data));
+            } else {
+                xhr.send(data);
+            }
+        }
+
         function handleImageUpload(e) {
             e.preventDefault();
             if (!selectedFileObject) {
@@ -525,38 +550,35 @@
             formData.append('file', selectedFileObject);
             formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-            fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
-                if (!data.secure_url) throw new Error('Cloudinary error');
-                return restFirestoreAdd({
-                    dataUrl: data.secure_url,
-                    status: 'pending',
-                    timestamp: Date.now()
-                });
-            })
-            .then(function() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        var data = JSON.parse(xhr.responseText);
+                        if (!data.secure_url) {
+                            uploadFailed('Cloudinary error');
+                            return;
+                        }
+                        restFirestoreAdd({
+                            dataUrl: data.secure_url,
+                            status: 'pending',
+                            timestamp: Date.now()
+                        });
+                    } else {
+                        uploadFailed('Upload failed status: ' + xhr.status);
+                    }
+                }
+            };
+            xhr.send(formData);
+
+            function uploadFailed(msg) {
+                showAlert('uploadAlert', msg, 'error');
                 if (submitBtn) {
                     submitBtn.innerText = '🚀 Submit Picture for Approval';
                     submitBtn.disabled = false;
                 }
-                showAlert('uploadAlert', 'Picture uploaded successfully! Awaiting review.', 'success');
-                document.getElementById('uploadForm').reset();
-                document.getElementById('previewBox').style.display = 'none';
-                selectedFileObject = null;
-                initRestSync();
-            })
-            .catch(function(err) {
-                console.error(err);
-                showAlert('uploadAlert', 'Upload failed.', 'error');
-                if (submitBtn) {
-                    submitBtn.innerText = '🚀 Submit Picture for Approval';
-                    submitBtn.disabled = false;
-                }
-            });
+            }
         }
 
         function handleAdminLogin(e) {
@@ -574,43 +596,42 @@
             }
         }
 
-        // Pure REST API Firestore Reader
+        // XHR Firestore Reader
         function initRestSync() {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos';
-            fetch(url)
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    cachedPhotos = [];
-                    if (data && data.documents) {
-                        for (var i = 0; i < data.documents.length; i++) {
-                            var doc = data.documents[i];
-                            var nameParts = doc.name.split('/');
-                            var docId = nameParts[nameParts.length - 1];
-                            var fields = doc.fields || {};
-                            
-                            cachedPhotos.push({
-                                id: docId,
-                                dataUrl: fields.dataUrl ? fields.dataUrl.stringValue : '',
-                                status: fields.status ? fields.status.stringValue : 'pending',
-                                timestamp: fields.timestamp ? parseInt(fields.timestamp.integerValue || fields.timestamp.doubleValue || 0) : 0
-                            });
-                        }
+            xhrRequest('GET', url, null, function(err, data) {
+                if (err) {
+                    showTvErrorLog('XHR Sync Error: ' + err.message);
+                    return;
+                }
+                cachedPhotos = [];
+                if (data && data.documents) {
+                    for (var i = 0; i < data.documents.length; i++) {
+                        var doc = data.documents[i];
+                        var nameParts = doc.name.split('/');
+                        var docId = nameParts[nameParts.length - 1];
+                        var fields = doc.fields || {};
+                        
+                        cachedPhotos.push({
+                            id: docId,
+                            dataUrl: fields.dataUrl ? fields.dataUrl.stringValue : '',
+                            status: fields.status ? fields.status.stringValue : 'pending',
+                            timestamp: fields.timestamp ? parseInt(fields.timestamp.integerValue || fields.timestamp.doubleValue || 0) : 0
+                        });
                     }
+                }
 
-                    cachedPhotos.sort(function(a, b) { return b.timestamp - a.timestamp; });
-                    if (isAdminLoggedIn) renderAdminQueues();
+                cachedPhotos.sort(function(a, b) { return b.timestamp - a.timestamp; });
+                if (isAdminLoggedIn) renderAdminQueues();
 
-                    var tvTab = document.getElementById('tab-tv');
-                    if (tvTab && tvTab.classList.contains('active')) {
-                        initSlideshow();
-                    }
-                })
-                .catch(function(err) {
-                    showTvErrorLog('REST Fetch Error: ' + err.message);
-                });
+                var tvTab = document.getElementById('tab-tv');
+                if (tvTab && tvTab.classList.contains('active')) {
+                    initSlideshow();
+                }
+            });
         }
 
-        // Pure REST API Firestore Writer (Add)
+        // XHR Firestore Writer (Add)
         function restFirestoreAdd(photoObj) {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos';
             var payload = {
@@ -620,14 +641,25 @@
                     timestamp: { integerValue: String(photoObj.timestamp) }
                 }
             };
-            return fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            xhrRequest('POST', url, payload, function(err) {
+                var submitBtn = document.getElementById('submitBtn');
+                if (submitBtn) {
+                    submitBtn.innerText = '🚀 Submit Picture for Approval';
+                    submitBtn.disabled = false;
+                }
+                if (!err) {
+                    showAlert('uploadAlert', 'Picture uploaded successfully! Awaiting review.', 'success');
+                    document.getElementById('uploadForm').reset();
+                    document.getElementById('previewBox').style.display = 'none';
+                    selectedFileObject = null;
+                    initRestSync();
+                } else {
+                    showAlert('uploadAlert', 'Database save failed.', 'error');
+                }
             });
         }
 
-        // Pure REST API Firestore Updater (Patch status)
+        // XHR Firestore Updater
         function restFirestoreUpdate(id, updates) {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos/' + id + '?updateMask.fieldPaths=status&updateMask.fieldPaths=timestamp';
             var fieldsObj = {
@@ -636,17 +668,20 @@
             if (updates.timestamp) {
                 fieldsObj.timestamp = { integerValue: String(updates.timestamp) };
             }
-            return fetch(url, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fields: fieldsObj })
-            }).then(function() { initRestSync(); });
+            xhrRequest('PATCH', url, { fields: fieldsObj }, function() {
+                initRestSync();
+            });
         }
 
-        // Pure REST API Firestore Deleter
+        // XHR Firestore Deleter
         function restFirestoreDelete(id) {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos/' + id;
-            return fetch(url, { method: 'DELETE' }).then(function() { initRestSync(); });
+            var xhr = new XMLHttpRequest();
+            xhr.open('DELETE', url, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) initRestSync();
+            };
+            xhr.send();
         }
 
         function renderAdminQueues() {
@@ -734,28 +769,13 @@
             var displayImg = document.getElementById('tvActiveImg');
             var safeUrl = formatJpgUrl(url);
 
-            fetch(safeUrl, { mode: 'cors' })
-                .then(function(response) {
-                    if (!response.ok) throw new Error('Blob HTTP Status: ' + response.status);
-                    return response.blob();
-                })
-                .then(function(blob) {
-                    var objectUrl = URL.createObjectURL(blob);
-                    if (displayImg) {
-                        displayImg.src = objectUrl;
-                        displayImg.style.display = "block";
-                        void displayImg.offsetHeight;
-                    }
-                    if (callback) callback();
-                })
-                .catch(function(err) {
-                    showTvErrorLog('Blob Fetch Fallback: ' + err.message);
-                    if (displayImg) {
-                        displayImg.src = safeUrl;
-                        displayImg.style.display = "block";
-                    }
-                    if (callback) callback();
-                });
+            // Direct assignment bypassing fetch restrictions completely on legacy TV browsers
+            if (displayImg) {
+                displayImg.src = safeUrl;
+                displayImg.style.display = "block";
+                void displayImg.offsetHeight;
+            }
+            if (callback) callback();
         }
 
         function enterFullscreen() {
