@@ -35,7 +35,7 @@
             flex-direction: column;
         }
 
-        /* LG TV Remote D-Pad / Pointer Focus Style */
+        /* LG TV Remote D-Pad Focus Style */
         .tab-btn:focus,
         button:focus,
         input:focus,
@@ -167,7 +167,7 @@
             object-fit: contain;
         }
 
-        /* LG WebOS Optimized Slideshow Rendering */
+        /* LG WebOS Fixed Layout Engine */
         .tv-wrapper {
             background-color: #000;
             border-radius: var(--radius-lg);
@@ -202,7 +202,6 @@
             align-items: center;
             justify-content: center;
             background: #000;
-            transform: translateZ(0); /* Forces GPU painting layer on TV */
         }
 
         .tv-slide.active {
@@ -211,10 +210,13 @@
         }
 
         .tv-slide img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
+            max-width: 100% !important;
+            max-height: 70vh !important;
+            width: auto !important;
+            height: auto !important;
+            margin: auto !important;
+            display: block !important;
+            object-fit: contain !important;
         }
 
         .tv-hud {
@@ -312,7 +314,6 @@
         </div>
     </header>
 
-    <!-- TV Remote Friendly Navigation Tabs -->
     <nav class="nav-tabs">
         <button type="button" class="tab-btn active" id="btn-upload" tabindex="0" onclick="switchTab('upload')">📸 Upload Picture</button>
         <button type="button" class="tab-btn" id="btn-tv" tabindex="0" onclick="switchTab('tv')">📺 Live TV Slideshow</button>
@@ -616,13 +617,24 @@
 
             pendingQ.innerHTML = pending.length === 0 ? '<p style="color:var(--text-muted); text-align:center;">No pending photos.</p>' :
                 pending.map(function(p) {
-                    return '<div class="photo-card"><img src="' + p.dataUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-approve" tabindex="0" onclick="updatePhotoStatus(\'' + p.id + '\', \'live\')">Approve</button><button class="action-btn btn-reject" tabindex="0" onclick="deletePhoto(\'' + p.id + '\')">Reject</button></div></div></div>';
+                    var safeUrl = formatJpgUrl(p.dataUrl);
+                    return '<div class="photo-card"><img src="' + safeUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-approve" tabindex="0" onclick="updatePhotoStatus(\'' + p.id + '\', \'live\')">Approve</button><button class="action-btn btn-reject" tabindex="0" onclick="deletePhoto(\'' + p.id + '\')">Reject</button></div></div></div>';
                 }).join('');
 
             liveQ.innerHTML = live.length === 0 ? '<p style="color:var(--text-muted); text-align:center;">No live photos.</p>' :
                 live.map(function(p) {
-                    return '<div class="photo-card"><img src="' + p.dataUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-reject" tabindex="0" onclick="deletePhoto(\'' + p.id + '\')">Delete</button></div></div></div>';
+                    var safeUrl = formatJpgUrl(p.dataUrl);
+                    return '<div class="photo-card"><img src="' + safeUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-reject" tabindex="0" onclick="deletePhoto(\'' + p.id + '\')">Delete</button></div></div></div>';
                 }).join('');
+        }
+
+        // Transforms Cloudinary URL to force baseline JPG format for LG TV Decoders
+        function formatJpgUrl(url) {
+            if (!url) return '';
+            if (url.indexOf('cloudinary.com') !== -1 && url.indexOf('/upload/') !== -1) {
+                return url.replace('/upload/', '/upload/f_jpg,q_auto/');
+            }
+            return url;
         }
 
         function updatePhotoStatus(id, newStatus) {
@@ -650,19 +662,16 @@
                 return;
             }
 
-            // Using explicit standard img tags with crossorigin attribute for webOS painting compatibility
             var html = '';
             for (var i = 0; i < livePhotos.length; i++) {
                 var p = livePhotos[i];
                 var activeClass = (i === 0) ? 'active' : '';
+                var jpgUrl = formatJpgUrl(p.dataUrl);
                 html += '<div class="tv-slide ' + activeClass + '" data-index="' + i + '">' +
-                        '<img src="' + p.dataUrl + '" alt="Live slide" crossorigin="anonymous" />' +
+                        '<img src="' + jpgUrl + '" alt="Live slide" />' +
                         '</div>';
             }
             screen.innerHTML = html;
-
-            // Force layout reflow so LG webOS graphics engine immediately renders the injected images
-            void screen.offsetWidth;
 
             if (slideshowInterval) clearInterval(slideshowInterval);
             currentSlideIndex = 0;
