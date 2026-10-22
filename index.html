@@ -163,7 +163,7 @@
             object-fit: contain;
         }
 
-        /* LG WebOS Fixed Dimension Frame Layout */
+        /* LG WebOS Fullscreen Responsive TV Frame Layout */
         .tv-wrapper {
             background-color: #000000;
             border-radius: var(--radius-lg);
@@ -190,13 +190,32 @@
         }
 
         .tv-display-frame {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: 100% !important;
-            max-height: 100% !important;
-            object-fit: contain !important;
-            display: block !important;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
             background-color: #000000;
+        }
+
+        /* High-Visibility Debugger Log Panel for TV Screen */
+        .tv-debug-overlay {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            background: rgba(20, 0, 0, 0.95);
+            border: 2px solid var(--accent-red);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            color: #FF9999;
+            font-family: monospace;
+            font-size: 0.95rem;
+            z-index: 20;
+            display: none;
+            max-height: 40vh;
+            overflow-y: auto;
+            text-align: left;
+            word-break: break-all;
         }
 
         .tv-hud {
@@ -329,13 +348,17 @@
             </div>
         </section>
 
-        <!-- TAB 2: TV SLIDESHOW -->
+        <!-- TAB 2: TV SLIDESHOW WITH BLOB FETCHER -->
         <section id="tab-tv" class="tab-content">
             <div class="tv-wrapper">
+                <div id="tvDebugOverlay" class="tv-debug-overlay">
+                    <strong style="color:#FFFF00;">⚠️ TV DIAGNOSTIC LOG & ERROR TRACE:</strong>
+                    <div id="tvDebugContent" style="margin-top: 0.5rem;">Initializing blob security bypass...</div>
+                </div>
+
                 <div class="tv-screen" id="tvScreen">
                     <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting to Database...</p>
-                    <!-- Explicit dimensions assigned to force WebOS box-sizing render -->
-                    <img id="tvActiveImg" class="tv-display-frame" width="1280" height="720" style="display:none;" alt="Live TV Frame" />
+                    <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
                 </div>
                 <div class="tv-hud">
                     <div class="tv-badge"><div class="live-dot"></div> THE MINERS ARMS LIVE TV</div>
@@ -392,6 +415,19 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <script>
+        function showTvErrorLog(msg) {
+            var overlay = document.getElementById('tvDebugOverlay');
+            var content = document.getElementById('tvDebugContent');
+            if (overlay && content) {
+                overlay.style.display = 'block';
+                content.innerHTML += '<div>> ' + msg + '</div>';
+            }
+        }
+
+        window.onerror = function(msg, url, line) {
+            showTvErrorLog('JS Error: ' + msg + ' (Line ' + line + ')');
+        };
+
         window.switchTab = function(tabId) {
             var contents = document.querySelectorAll('.tab-content');
             for (var i = 0; i < contents.length; i++) {
@@ -448,7 +484,7 @@
             db = firebase.firestore();
             initRealtimeSync();
         } catch (err) {
-            console.error("Firebase init error:", err);
+            showTvErrorLog('Firebase Init Exception: ' + err.message);
         }
 
         document.addEventListener('keydown', function(e) {
@@ -571,7 +607,7 @@
                     initSlideshow();
                 }
             }, function(error) {
-                console.error("Snapshot failed, using fetch:", error);
+                showTvErrorLog('Realtime Sync Failed: ' + error.message);
                 fetchPhotosFromDb();
             });
         }
@@ -588,6 +624,8 @@
                 cachedPhotos.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
                 if (isAdminLoggedIn) renderAdminQueues();
                 initSlideshow();
+            }).catch(function(err) {
+                showTvErrorLog('Direct Fetch Failed: ' + err.message);
             });
         }
 
@@ -673,27 +711,34 @@
             }, 6000);
         }
 
+        // Binary Fetcher & Blob Security Bypass Engine for LG WebOS
         function loadPhotoToTv(url, callback) {
             var displayImg = document.getElementById('tvActiveImg');
             var safeUrl = formatJpgUrl(url);
 
-            var tempImg = new Image();
-            tempImg.onload = function() {
-                if (displayImg) {
-                    displayImg.src = safeUrl;
-                    displayImg.style.display = "block";
-                    void displayImg.offsetHeight;
-                }
-                if (callback) callback();
-            };
-            tempImg.onerror = function() {
-                if (displayImg) {
-                    displayImg.src = safeUrl;
-                    displayImg.style.display = "block";
-                }
-                if (callback) callback();
-            };
-            tempImg.src = safeUrl;
+            fetch(safeUrl, { mode: 'cors' })
+                .then(function(response) {
+                    if (!response.ok) throw new Error('Network response failed: ' + response.status);
+                    return response.blob();
+                })
+                .then(function(blob) {
+                    var objectUrl = URL.createObjectURL(blob);
+                    if (displayImg) {
+                        displayImg.src = objectUrl;
+                        displayImg.style.display = "block";
+                        void displayImg.offsetHeight;
+                    }
+                    if (callback) callback();
+                })
+                .catch(function(err) {
+                    showTvErrorLog('Blob Fetch Error: ' + err.message + ' (URL: ' + safeUrl + ')');
+                    // Fallback to direct assignment if fetch restriction occurs
+                    if (displayImg) {
+                        displayImg.src = safeUrl;
+                        displayImg.style.display = "block";
+                    }
+                    if (callback) callback();
+                });
         }
 
         function enterFullscreen() {
