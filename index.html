@@ -163,7 +163,7 @@
             object-fit: contain;
         }
 
-        /* Optimized TV Canvas Layout */
+        /* LG WebOS Safe DOM Slideshow Layout */
         .tv-wrapper {
             background-color: #000000;
             border-radius: var(--radius-lg);
@@ -183,14 +183,33 @@
             height: 100%; 
             position: relative; 
             background: #000000;
+            overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        #tvCanvas {
-            width: 100%;
-            height: 100%;
+        .tv-slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000000;
+        }
+
+        .tv-slide.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tv-slide img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
             display: block;
         }
 
@@ -328,7 +347,9 @@
         <section id="tab-tv" class="tab-content">
             <div class="tv-wrapper">
                 <div class="tv-screen" id="tvScreen">
-                    <canvas id="tvCanvas"></canvas>
+                    <div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);">
+                        <p style="font-size: 1.2rem; font-family:'Cinzel', serif;">Connecting to Database...</p>
+                    </div>
                 </div>
                 <div class="tv-hud">
                     <div class="tv-badge"><div class="live-dot"></div> THE MINERS ARMS LIVE TV</div>
@@ -436,7 +457,6 @@
         var unsubscribeSnapshot = null;
         var isAdminLoggedIn = false;
         var cachedPhotos = [];
-        var preloadedImages = [];
 
         try {
             firebase.initializeApp(firebaseConfig);
@@ -543,7 +563,6 @@
             }
         }
 
-        // Restored lightning-fast real-time sync with fallback automatic polling
         function initRealtimeSync() {
             if (!db) return;
             if (unsubscribeSnapshot) unsubscribeSnapshot();
@@ -634,86 +653,46 @@
             db.collection("photos").doc(id).delete();
         }
 
-        // Dynamically sized Canvas Engine to prevent black screen on LG WebOS
+        // TV-Optimized DOM Slideshow Renderer with Forced Reflow
         function initSlideshow() {
             var livePhotos = cachedPhotos.filter(function(p) { return p.status === 'live'; });
+            var screen = document.getElementById('tvScreen');
             var counter = document.getElementById('tvCounter');
-            var canvas = document.getElementById('tvCanvas');
-            if (!canvas) return;
-            
-            var ctx = canvas.getContext('2d');
-            canvas.width = canvas.parentElement.clientWidth || 1280;
-            canvas.height = canvas.parentElement.clientHeight || 720;
+            if (!screen) return;
 
             if (livePhotos.length === 0) {
                 if (slideshowInterval) clearInterval(slideshowInterval);
-                ctx.fillStyle = '#0A0A0A';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.font = 'bold 24px Plus Jakarta Sans';
-                ctx.textAlign = 'center';
-                ctx.fillText('No live pictures available yet.', canvas.width / 2, canvas.height / 2);
+                screen.innerHTML = '<div class="tv-slide active" style="display:flex; flex-direction:column; justify-content:center; align-items:center; color: var(--text-muted);"><p style="font-size: 1.2rem; font-family:\'Cinzel\', serif;">No live pictures available yet.</p></div>';
                 if (counter) counter.innerText = '0 / 0 Slides';
                 return;
             }
 
-            preloadedImages = [];
-            var loadedCount = 0;
-
+            var html = '';
             for (var i = 0; i < livePhotos.length; i++) {
-                (function(url) {
-                    var img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = function() {
-                        loadedCount++;
-                        if (loadedCount === livePhotos.length) {
-                            startCanvasLoop(livePhotos);
-                        }
-                    };
-                    img.onerror = function() {
-                        loadedCount++;
-                        if (loadedCount === livePhotos.length) {
-                            startCanvasLoop(livePhotos);
-                        }
-                    };
-                    img.src = formatJpgUrl(url);
-                    preloadedImages.push(img);
-                })(livePhotos[i].dataUrl);
+                var p = livePhotos[i];
+                var activeClass = (i === 0) ? 'active' : '';
+                var jpgUrl = formatJpgUrl(p.dataUrl);
+                html += '<div class="tv-slide ' + activeClass + '" data-index="' + i + '">' +
+                        '<img src="' + jpgUrl + '" alt="Live slide" crossorigin="anonymous" />' +
+                        '</div>';
             }
-        }
+            screen.innerHTML = html;
 
-        function startCanvasLoop(livePhotos) {
-            var canvas = document.getElementById('tvCanvas');
-            var counter = document.getElementById('tvCounter');
-            if (!canvas) return;
-            var ctx = canvas.getContext('2d');
+            // Force layout reflow so LG webOS browser engine paints pixels instantly
+            void screen.offsetWidth;
 
             if (slideshowInterval) clearInterval(slideshowInterval);
             currentSlideIndex = 0;
-
-            function drawSlide(index) {
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                var img = preloadedImages[index];
-                if (img && img.complete && img.naturalWidth !== 0) {
-                    var hRatio = canvas.width / img.width;
-                    var vRatio = canvas.height / img.height;
-                    var ratio = Math.min(hRatio, vRatio);
-                    var centerShiftX = (canvas.width - img.width * ratio) / 2;
-                    var centerShiftY = (canvas.height - img.height * ratio) / 2;
-
-                    ctx.drawImage(img, 0, 0, img.width, img.height, centerShiftX, centerShiftY, img.width * ratio, img.height * ratio);
-                }
-                if (counter) counter.innerText = 'Slide ' + (index + 1) + ' / ' + livePhotos.length;
-            }
-
-            drawSlide(currentSlideIndex);
+            if (counter) counter.innerText = 'Slide 1 / ' + livePhotos.length;
 
             slideshowInterval = setInterval(function() {
-                if (preloadedImages.length <= 1) return;
-                currentSlideIndex = (currentSlideIndex + 1) % preloadedImages.length;
-                drawSlide(currentSlideIndex);
+                var slides = screen.querySelectorAll('.tv-slide');
+                if (slides.length <= 1) return;
+
+                slides[currentSlideIndex].classList.remove('active');
+                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                slides[currentSlideIndex].classList.add('active');
+                if (counter) counter.innerText = 'Slide ' + (currentSlideIndex + 1) + ' / ' + slides.length;
             }, 5000);
         }
 
