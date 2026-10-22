@@ -99,7 +99,6 @@
             border-radius: var(--radius-md);
             cursor: pointer;
             user-select: none;
-            -webkit-user-select: none;
         }
 
         .tab-btn.active {
@@ -168,6 +167,7 @@
             object-fit: contain;
         }
 
+        /* TV Slideshow Forced TV-Rendering Fixes */
         .tv-wrapper {
             background-color: #000;
             border-radius: var(--radius-lg);
@@ -181,21 +181,34 @@
             justify-content: center;
         }
 
-        .tv-screen { width: 100%; height: 100%; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .tv-screen { width: 100%; height: 100%; position: relative; display: block; overflow: hidden; }
 
         .tv-slide {
             position: absolute;
-            inset: 0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             opacity: 0;
-            transition: opacity 1s ease-in-out;
+            visibility: hidden;
+            transition: opacity 0.8s ease-in-out;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #000;
         }
 
-        .tv-slide.active { opacity: 1; }
-        .tv-slide img { width: 100%; height: 100%; object-fit: contain; }
+        .tv-slide.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tv-slide img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain !important;
+            display: block !important;
+        }
 
         .tv-hud {
             position: absolute;
@@ -397,29 +410,23 @@
         &copy; 2026 The Miners Arms. All rights reserved.
     </footer>
 
-    <!-- Firebase SDK Loaded Standard Dynamic Imports (LG webOS compatible) -->
+    <!-- Firebase SDK Loaded Compat Mode for TV Browser Support -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Global Tab Switching - Directly Callable by LG Remote
         window.switchTab = function(tabId) {
-            console.log("Switching tab to:", tabId);
-            
-            // Hide all tabs
             var contents = document.querySelectorAll('.tab-content');
             for (var i = 0; i < contents.length; i++) {
                 contents[i].classList.remove('active');
                 contents[i].style.display = 'none';
             }
 
-            // Deactivate all buttons
             var buttons = document.querySelectorAll('.tab-btn');
             for (var j = 0; j < buttons.length; j++) {
                 buttons[j].classList.remove('active');
             }
 
-            // Activate Target Tab & Button
             var targetTab = document.getElementById('tab-' + tabId);
             if (targetTab) {
                 targetTab.classList.add('active');
@@ -439,7 +446,6 @@
             }
         };
 
-        // Firebase Initialization (Compat Mode for TV Browser Support)
         var firebaseConfig = {
             apiKey: "AIzaSyDfoySaIshh6WDekGK2c_ybxyqqlCOEW7g",
             authDomain: "minerspictures.firebaseapp.com",
@@ -467,7 +473,6 @@
             console.error("Firebase init error:", err);
         }
 
-        // TV Remote Navigation Overrides
         document.addEventListener('keydown', function(e) {
             var activeEl = document.activeElement;
             if (['Enter', ' ', 'Select', 'OK'].indexOf(e.key) !== -1) {
@@ -673,7 +678,6 @@
             setTimeout(function() { el.style.display = 'none'; }, 6000);
         }
 
-        // Auto-focus first button for remote control readiness
         window.addEventListener('load', function() {
             var firstBtn = document.getElementById('btn-upload');
             if (firstBtn) firstBtn.focus();
