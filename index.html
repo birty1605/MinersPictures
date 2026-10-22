@@ -35,7 +35,7 @@
             flex-direction: column;
         }
 
-        /* LG TV Remote D-Pad Focus Style */
+        /* LG TV Remote D-Pad Focus Style & Phone Compatibility */
         .tab-btn:focus,
         button:focus,
         input:focus,
@@ -167,7 +167,7 @@
             object-fit: contain;
         }
 
-        /* LG WebOS Canvas-Based Slideshow Layout */
+        /* TV Canvas Layout Wrapper */
         .tv-wrapper {
             background-color: #000;
             border-radius: var(--radius-lg);
@@ -397,7 +397,7 @@
         &copy; 2026 The Miners Arms. All rights reserved.
     </footer>
 
-    <!-- Firebase SDK Loaded Compat Mode for TV Browser Support -->
+    <!-- Firebase SDK Loaded Compat Mode for TV & Phone Support -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -449,7 +449,6 @@
         var selectedFileObject = null;
         var currentSlideIndex = 0;
         var slideshowInterval = null;
-        var autoRefreshInterval = null;
         var isAdminLoggedIn = false;
         var cachedPhotos = [];
         var preloadedImages = [];
@@ -458,7 +457,6 @@
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             fetchPhotosFromDb();
-            // Auto poll DB every 15 seconds to sync data without crashing TV web sockets
             setInterval(fetchPhotosFromDb, 15000);
         } catch (err) {
             console.error("Firebase init error:", err);
@@ -562,7 +560,6 @@
             }
         }
 
-        // Safe standard fetch method replacing real-time listeners for TV stability
         function fetchPhotosFromDb() {
             if (!db) return;
             db.collection("photos").get().then(function(querySnapshot) {
