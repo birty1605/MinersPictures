@@ -7,7 +7,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Alex+Brush&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase & Cloudinary Engine with Error Boundary -->
+    <!-- Firebase & Cloudinary Engine -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -45,7 +45,7 @@
                 }
             }
 
-            // Tab Navigation
+            // Tab Navigation Event Listeners
             document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -53,7 +53,7 @@
                 });
             });
 
-            // Dropzone & File Input handling
+            // Dropzone & File Input Handling
             const dropzoneBox = document.getElementById('dropzoneBox');
             const fileInput = document.getElementById('fileInput');
             if (dropzoneBox && fileInput) {
@@ -75,7 +75,54 @@
 
             const simulateAgingBtn = document.getElementById('simulateAgingBtn');
             if (simulateAgingBtn) simulateAgingBtn.addEventListener('click', () => simulateAging(db));
+
+            // Enable Smart TV Remote D-Pad & Keyboard Controls
+            setupRemoteControl();
+
+            // Auto focus the initial tab button for remote control usability
+            const initialBtn = document.querySelector('.nav-tabs .tab-btn.active');
+            if (initialBtn) initialBtn.focus();
         });
+
+        // TV Remote Navigation Handler (D-Pad support)
+        function setupRemoteControl() {
+            document.addEventListener('keydown', (e) => {
+                const key = e.key;
+                const activeEl = document.activeElement;
+
+                // Handle OK / Enter button presses on TV Remote
+                if (['Enter', ' ', 'Select', 'OK', 'NumpadEnter'].includes(key)) {
+                    if (activeEl && activeEl.tagName === 'BUTTON') {
+                        activeEl.click();
+                        e.preventDefault();
+                    } else if (activeEl && activeEl.id === 'dropzoneBox') {
+                        document.getElementById('fileInput').click();
+                        e.preventDefault();
+                    }
+                }
+
+                // Smooth Remote Navigation between focusable elements
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+                    const focusables = Array.from(document.querySelectorAll('button, input, [tabindex="0"]'))
+                        .filter(el => el.offsetWidth > 0 && el.offsetHeight > 0 && !el.disabled);
+                    const currentIndex = focusables.indexOf(activeEl);
+
+                    if (currentIndex !== -1) {
+                        let nextIndex = currentIndex;
+                        if (key === 'ArrowRight' || key === 'ArrowDown') {
+                            nextIndex = (currentIndex + 1) % focusables.length;
+                        } else if (key === 'ArrowLeft' || key === 'ArrowUp') {
+                            nextIndex = (currentIndex - 1 + focusables.length) % focusables.length;
+                        }
+                        focusables[nextIndex].focus();
+                        e.preventDefault();
+                    } else if (focusables.length > 0) {
+                        focusables[0].focus();
+                        e.preventDefault();
+                    }
+                }
+            });
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -85,7 +132,10 @@
             if (targetTab) targetTab.classList.add('active');
 
             const targetBtn = document.querySelector(`.nav-tabs [data-tab="${tabId}"]`);
-            if (targetBtn) targetBtn.classList.add('active');
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+                targetBtn.focus();
+            }
 
             if (tabId === 'tv') {
                 initSlideshow();
@@ -106,6 +156,7 @@
                 if (previewImg && previewBox) {
                     previewImg.src = e.target.result;
                     previewBox.style.display = 'block';
+                    document.getElementById('submitBtn').focus();
                 }
             };
             reader.readAsDataURL(file);
@@ -353,7 +404,7 @@
             --accent-green: #5CB85C;
             --radius-lg: 16px;
             --radius-md: 10px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition: all 0.2s ease-in-out;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -365,6 +416,16 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+        }
+
+        /* Smart TV Focus Highlights for Remote D-Pad Navigation */
+        button:focus, 
+        input:focus, 
+        .upload-dropzone:focus {
+            outline: 4px solid var(--gold-primary) !important;
+            outline-offset: 2px !important;
+            transform: scale(1.03);
+            box-shadow: 0 0 20px rgba(229, 216, 182, 0.8) !important;
         }
 
         header {
@@ -666,9 +727,9 @@
     </header>
 
     <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="upload">📸 Upload Picture</button>
-        <button class="tab-btn" data-tab="tv">📺 Live TV Slideshow</button>
-        <button class="tab-btn admin-nav-btn" data-tab="admin">🔑 Admin Login</button>
+        <button class="tab-btn active" data-tab="upload" tabindex="0">📸 Upload Picture</button>
+        <button class="tab-btn" data-tab="tv" tabindex="0">📺 Live TV Slideshow</button>
+        <button class="tab-btn admin-nav-btn" data-tab="admin" tabindex="0">🔑 Admin Login</button>
     </nav>
 
     <main>
@@ -681,9 +742,9 @@
                 <div id="uploadAlert" class="alert-msg"></div>
 
                 <form id="uploadForm">
-                    <div class="upload-dropzone" id="dropzoneBox">
+                    <div class="upload-dropzone" id="dropzoneBox" tabindex="0">
                         <div class="upload-icon">📷</div>
-                        <p style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">Click to browse or drag & drop picture</p>
+                        <p style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem;">Click/Select to browse picture</p>
                         <p style="color: var(--text-muted); font-size: 0.85rem;">Supports JPG, PNG, WEBP</p>
                         <input type="file" id="fileInput" accept="image/*">
                     </div>
@@ -691,7 +752,7 @@
                     <div id="previewBox" class="preview-container">
                         <img id="imagePreview" class="preview-img" alt="Preview">
                         <div style="margin-top: 1rem;">
-                            <button type="submit" class="btn" id="submitBtn">🚀 Submit Picture for Approval</button>
+                            <button type="submit" class="btn" id="submitBtn" tabindex="0">🚀 Submit Picture for Approval</button>
                         </div>
                     </div>
                 </form>
@@ -712,7 +773,7 @@
                 </div>
             </div>
             <div class="tv-controls-bar">
-                <button class="btn" id="fullscreenBtn">🖥️ Enter Fullscreen Mode</button>
+                <button class="btn" id="fullscreenBtn" tabindex="0">🖥️ Enter Fullscreen Mode</button>
             </div>
         </section>
 
@@ -725,13 +786,13 @@
                 <form id="loginForm">
                     <div class="form-group">
                         <label class="form-label">Username</label>
-                        <input type="text" id="adminUser" class="form-input" required autocomplete="username" placeholder="Enter username">
+                        <input type="text" id="adminUser" class="form-input" required autocomplete="username" placeholder="Enter username" tabindex="0">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Password</label>
-                        <input type="password" id="adminPass" class="form-input" required autocomplete="current-password" placeholder="Enter password">
+                        <input type="password" id="adminPass" class="form-input" required autocomplete="current-password" placeholder="Enter password" tabindex="0">
                     </div>
-                    <button type="submit" class="btn" style="width: 100%;">Sign In</button>
+                    <button type="submit" class="btn" style="width: 100%;" tabindex="0">Sign In</button>
                 </form>
             </div>
 
@@ -749,7 +810,7 @@
                     <div class="section-header">
                         <h2>Live Active Display Photos</h2>
                         <div>
-                            <button class="btn btn-secondary" id="simulateAgingBtn" style="margin-right: 0.75rem; font-size: 0.85rem; padding: 0.5rem 1rem;">⏳ Simulate 6-Mo Aging</button>
+                            <button class="btn btn-secondary" id="simulateAgingBtn" style="margin-right: 0.75rem; font-size: 0.85rem; padding: 0.5rem 1rem;" tabindex="0">⏳ Simulate 6-Mo Aging</button>
                             <span id="liveCountBadge" class="badge-count">0 Live</span>
                         </div>
                     </div>
