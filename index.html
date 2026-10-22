@@ -163,7 +163,7 @@
             object-fit: contain;
         }
 
-        /* LG WebOS Safe DOM Slideshow Layout */
+        /* LG WebOS Safe Direct Render Container */
         .tv-wrapper {
             background-color: #000000;
             border-radius: var(--radius-lg);
@@ -191,26 +191,31 @@
 
         .tv-slide {
             position: absolute;
-            inset: 0;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             opacity: 0;
-            visibility: hidden;
-            transition: opacity 1s ease-in-out;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #000000;
+            z-index: 1;
         }
 
         .tv-slide.active {
-            opacity: 1;
-            visibility: visible;
+            opacity: 1 !important;
+            z-index: 5 !important;
         }
 
         .tv-slide img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            display: block;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            object-fit: contain !important;
+            display: block !important;
+            margin: auto !important;
         }
 
         .tv-hud {
@@ -402,7 +407,7 @@
         &copy; 2026 The Miners Arms. All rights reserved.
     </footer>
 
-    <!-- Firebase SDK Loaded Compat Mode for TV & Phone Support -->
+    <!-- Firebase SDK Loaded Compat Mode -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -633,12 +638,16 @@
                 }).join('');
         }
 
+        // Transforms URL to baseline JPG + appends dynamic cache-busting timestamp
         function formatJpgUrl(url) {
             if (!url) return '';
-            if (url.indexOf('cloudinary.com') !== -1 && url.indexOf('/upload/') !== -1) {
-                return url.replace('/upload/', '/upload/f_jpg,q_auto/');
+            var safe = url;
+            if (safe.indexOf('cloudinary.com') !== -1 && safe.indexOf('/upload/') !== -1) {
+                safe = safe.replace('/upload/', '/upload/f_jpg,q_auto/');
             }
-            return url;
+            // Append cache busting parameter to bypass LG WebOS Chromium CORS caching lock
+            var separator = safe.indexOf('?') !== -1 ? '&' : '?';
+            return safe + separator + 'tvCache=' + Date.now();
         }
 
         function updatePhotoStatus(id, newStatus) {
@@ -653,7 +662,6 @@
             db.collection("photos").doc(id).delete();
         }
 
-        // TV-Optimized DOM Slideshow Renderer with Forced Reflow
         function initSlideshow() {
             var livePhotos = cachedPhotos.filter(function(p) { return p.status === 'live'; });
             var screen = document.getElementById('tvScreen');
@@ -673,13 +681,13 @@
                 var activeClass = (i === 0) ? 'active' : '';
                 var jpgUrl = formatJpgUrl(p.dataUrl);
                 html += '<div class="tv-slide ' + activeClass + '" data-index="' + i + '">' +
-                        '<img src="' + jpgUrl + '" alt="Live slide" crossorigin="anonymous" />' +
+                        '<img src="' + jpgUrl + '" alt="Live slide" />' +
                         '</div>';
             }
             screen.innerHTML = html;
 
-            // Force layout reflow so LG webOS browser engine paints pixels instantly
-            void screen.offsetWidth;
+            // Trigger physical DOM Reflow to force WebOS GPU layout repaint
+            void screen.offsetHeight;
 
             if (slideshowInterval) clearInterval(slideshowInterval);
             currentSlideIndex = 0;
