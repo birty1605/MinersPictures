@@ -163,7 +163,7 @@
             object-fit: contain;
         }
 
-        /* LG WebOS Safe Pre-Instantiated Image Container */
+        /* LG WebOS Fixed Dimension Frame Layout */
         .tv-wrapper {
             background-color: #000000;
             border-radius: var(--radius-lg);
@@ -190,14 +190,13 @@
         }
 
         .tv-display-frame {
+            width: 100% !important;
+            height: 100% !important;
             max-width: 100% !important;
             max-height: 100% !important;
-            width: auto !important;
-            height: auto !important;
             object-fit: contain !important;
             display: block !important;
-            margin: auto !important;
-            border: none !important;
+            background-color: #000000;
         }
 
         .tv-hud {
@@ -335,7 +334,8 @@
             <div class="tv-wrapper">
                 <div class="tv-screen" id="tvScreen">
                     <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting to Database...</p>
-                    <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
+                    <!-- Explicit dimensions assigned to force WebOS box-sizing render -->
+                    <img id="tvActiveImg" class="tv-display-frame" width="1280" height="720" style="display:none;" alt="Live TV Frame" />
                 </div>
                 <div class="tv-hud">
                     <div class="tv-badge"><div class="live-dot"></div> THE MINERS ARMS LIVE TV</div>
@@ -639,7 +639,6 @@
             db.collection("photos").doc(id).delete();
         }
 
-        // Memory Pre-Instantiation Engine for WebOS TV
         function initSlideshow() {
             var livePhotos = cachedPhotos.filter(function(p) { return p.status === 'live'; });
             var msg = document.getElementById('tvStatusMsg');
@@ -678,13 +677,11 @@
             var displayImg = document.getElementById('tvActiveImg');
             var safeUrl = formatJpgUrl(url);
 
-            // Instantiate off-screen in JS memory before displaying on screen
             var tempImg = new Image();
             tempImg.onload = function() {
                 if (displayImg) {
                     displayImg.src = safeUrl;
                     displayImg.style.display = "block";
-                    // Execute forced layout reflow for LG TV WebOS
                     void displayImg.offsetHeight;
                 }
                 if (callback) callback();
