@@ -45,14 +45,22 @@
                 }
             }
 
+            // Tab Navigation
             document.querySelectorAll('.nav-tabs .tab-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => switchTab(e.currentTarget.getAttribute('data-tab')));
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchTab(e.currentTarget.getAttribute('data-tab'));
+                });
             });
 
+            // Dropzone & File Input handling
             const dropzoneBox = document.getElementById('dropzoneBox');
             const fileInput = document.getElementById('fileInput');
             if (dropzoneBox && fileInput) {
-                dropzoneBox.addEventListener('click', () => fileInput.click());
+                dropzoneBox.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    fileInput.click();
+                });
                 fileInput.addEventListener('change', previewFile);
             }
 
@@ -246,13 +254,13 @@
             document.getElementById('archiveCountBadge').innerText = `${archived.length} Archived`;
 
             pendingQ.innerHTML = pending.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No pending pictures.</p>` :
-                pending.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-approve" onclick="updatePhotoStatus('${p.id}', 'live')">Approve</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Reject</button>`)).join('');
+                pending.map(p => createPhotoCardHTML(p, `<button type="button" class="action-btn btn-approve" onclick="updatePhotoStatus('${p.id}', 'live')">Approve</button><button type="button" class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Reject</button>`)).join('');
 
             liveQ.innerHTML = live.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No live pictures.</p>` :
-                live.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
+                live.map(p => createPhotoCardHTML(p, `<button type="button" class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
 
             archiveQ.innerHTML = archived.length === 0 ? `<p style="color:var(--text-muted); grid-column: 1/-1; text-align:center;">No archived pictures.</p>` :
-                archiveQ.map(p => createPhotoCardHTML(p, `<button class="action-btn btn-restore" onclick="updatePhotoStatus('${p.id}', 'live')">Restore</button><button class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
+                archived.map(p => createPhotoCardHTML(p, `<button type="button" class="action-btn btn-restore" onclick="updatePhotoStatus('${p.id}', 'live')">Restore</button><button type="button" class="action-btn btn-reject" onclick="deletePhoto('${p.id}')">Delete</button>`)).join('');
         }
 
         function createPhotoCardHTML(photo, actionsHTML) {
