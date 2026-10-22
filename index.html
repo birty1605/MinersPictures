@@ -353,11 +353,11 @@
             <div class="tv-wrapper">
                 <div id="tvDebugOverlay" class="tv-debug-overlay">
                     <strong style="color:#FFFF00;">⚠️ TV DIAGNOSTIC LOG & ERROR TRACE:</strong>
-                    <div id="tvDebugContent" style="margin-top: 0.5rem;">Initializing universal TV engine...</div>
+                    <div id="tvDebugContent" style="margin-top: 0.5rem;">Initializing REST API database connector...</div>
                 </div>
 
                 <div class="tv-screen" id="tvScreen">
-                    <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting to Database...</p>
+                    <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting via REST API...</p>
                     <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
                 </div>
                 <div class="tv-hud">
@@ -411,10 +411,6 @@
         &copy; 2026 The Miners Arms. All rights reserved.
     </footer>
 
-    <!-- Universal Firebase SDK v9/v10 Compat Universal Bundle for Smart TVs -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
     <script>
         function showTvErrorLog(msg) {
             var overlay = document.getElementById('tvDebugOverlay');
@@ -454,43 +450,30 @@
             }
 
             if (tabId === 'tv') {
-                initRealtimeSync();
+                initRestSync();
             } else if (tabId === 'admin' && isAdminLoggedIn) {
                 renderAdminQueues();
             }
         };
 
-        var firebaseConfig = {
-            apiKey: "AIzaSyDfoySaIshh6WDekGK2c_ybxyqqlCOEW7g",
-            authDomain: "minerspictures.firebaseapp.com",
-            projectId: "minerspictures",
-            storageBucket: "minerspictures.firebasestorage.app",
-            messagingSenderId: "812113201476",
-            appId: "1:812113201476:web:f32b0e323d46972d07af11"
-        };
-
+        var PROJECT_ID = "minerspictures";
         var CLOUDINARY_CLOUD_NAME = 'vju0scal';
         var CLOUDINARY_UPLOAD_PRESET = 'miners_preset';
 
-        var db = null;
         var selectedFileObject = null;
         var currentSlideIndex = 0;
         var slideshowInterval = null;
-        var unsubscribeSnapshot = null;
+        var pollInterval = null;
         var isAdminLoggedIn = false;
         var cachedPhotos = [];
 
+        // Initialize polling sync via pure REST API (No SDK Required)
         try {
-            if (typeof firebase !== 'undefined') {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                showTvErrorLog('Firebase Connected Successfully!');
-                initRealtimeSync();
-            } else {
-                throw new Error('Firebase script failed to load into global scope.');
-            }
+            showTvErrorLog('REST API Engine Initialized.');
+            initRestSync();
+            pollInterval = setInterval(initRestSync, 10000); // Poll database every 10 seconds
         } catch (err) {
-            showTvErrorLog('Firebase Init Exception: ' + err.message);
+            showTvErrorLog('Init Exception: ' + err.message);
         }
 
         document.addEventListener('keydown', function(e) {
@@ -549,7 +532,7 @@
             .then(function(res) { return res.json(); })
             .then(function(data) {
                 if (!data.secure_url) throw new Error('Cloudinary error');
-                return db.collection("photos").add({
+                return restFirestoreAdd({
                     dataUrl: data.secure_url,
                     status: 'pending',
                     timestamp: Date.now()
@@ -564,6 +547,7 @@
                 document.getElementById('uploadForm').reset();
                 document.getElementById('previewBox').style.display = 'none';
                 selectedFileObject = null;
+                initRestSync();
             })
             .catch(function(err) {
                 console.error(err);
@@ -590,49 +574,79 @@
             }
         }
 
-        function initRealtimeSync() {
-            if (!db) return;
-            if (unsubscribeSnapshot) unsubscribeSnapshot();
+        // Pure REST API Firestore Reader
+        function initRestSync() {
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos';
+            fetch(url)
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    cachedPhotos = [];
+                    if (data && data.documents) {
+                        for (var i = 0; i < data.documents.length; i++) {
+                            var doc = data.documents[i];
+                            var nameParts = doc.name.split('/');
+                            var docId = nameParts[nameParts.length - 1];
+                            var fields = doc.fields || {};
+                            
+                            cachedPhotos.push({
+                                id: docId,
+                                dataUrl: fields.dataUrl ? fields.dataUrl.stringValue : '',
+                                status: fields.status ? fields.status.stringValue : 'pending',
+                                timestamp: fields.timestamp ? parseInt(fields.timestamp.integerValue || fields.timestamp.doubleValue || 0) : 0
+                            });
+                        }
+                    }
 
-            unsubscribeSnapshot = db.collection("photos").onSnapshot(function(snapshot) {
-                cachedPhotos = [];
-                snapshot.forEach(function(docSnap) {
-                    var data = docSnap.data();
-                    data.id = docSnap.id;
-                    cachedPhotos.push(data);
+                    cachedPhotos.sort(function(a, b) { return b.timestamp - a.timestamp; });
+                    if (isAdminLoggedIn) renderAdminQueues();
+
+                    var tvTab = document.getElementById('tab-tv');
+                    if (tvTab && tvTab.classList.contains('active')) {
+                        initSlideshow();
+                    }
+                })
+                .catch(function(err) {
+                    showTvErrorLog('REST Fetch Error: ' + err.message);
                 });
+        }
 
-                cachedPhotos.sort(function(a, b) {
-                    return (b.timestamp || 0) - (a.timestamp || 0);
-                });
-
-                if (isAdminLoggedIn) renderAdminQueues();
-                
-                var tvTab = document.getElementById('tab-tv');
-                if (tvTab && tvTab.classList.contains('active')) {
-                    initSlideshow();
+        // Pure REST API Firestore Writer (Add)
+        function restFirestoreAdd(photoObj) {
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos';
+            var payload = {
+                fields: {
+                    dataUrl: { stringValue: photoObj.dataUrl },
+                    status: { stringValue: photoObj.status },
+                    timestamp: { integerValue: String(photoObj.timestamp) }
                 }
-            }, function(error) {
-                showTvErrorLog('Realtime Sync Failed: ' + error.message);
-                fetchPhotosFromDb();
+            };
+            return fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
         }
 
-        function fetchPhotosFromDb() {
-            if (!db) return;
-            db.collection("photos").get().then(function(querySnapshot) {
-                cachedPhotos = [];
-                querySnapshot.forEach(function(docSnap) {
-                    var data = docSnap.data();
-                    data.id = docSnap.id;
-                    cachedPhotos.push(data);
-                });
-                cachedPhotos.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
-                if (isAdminLoggedIn) renderAdminQueues();
-                initSlideshow();
-            }).catch(function(err) {
-                showTvErrorLog('Direct Fetch Failed: ' + err.message);
-            });
+        // Pure REST API Firestore Updater (Patch status)
+        function restFirestoreUpdate(id, updates) {
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos/' + id + '?updateMask.fieldPaths=status&updateMask.fieldPaths=timestamp';
+            var fieldsObj = {
+                status: { stringValue: updates.status }
+            };
+            if (updates.timestamp) {
+                fieldsObj.timestamp = { integerValue: String(updates.timestamp) };
+            }
+            return fetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fields: fieldsObj })
+            }).then(function() { initRestSync(); });
+        }
+
+        // Pure REST API Firestore Deleter
+        function restFirestoreDelete(id) {
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos/' + id;
+            return fetch(url, { method: 'DELETE' }).then(function() { initRestSync(); });
         }
 
         function renderAdminQueues() {
@@ -672,15 +686,14 @@
         }
 
         function updatePhotoStatus(id, newStatus) {
-            if (!db) return;
             var updates = { status: newStatus };
             if (newStatus === 'live') updates.timestamp = Date.now();
-            db.collection("photos").doc(id).update(updates);
+            restFirestoreUpdate(id, updates);
         }
 
         function deletePhoto(id) {
-            if (!db || !confirm('Delete picture?')) return;
-            db.collection("photos").doc(id).delete();
+            if (!confirm('Delete picture?')) return;
+            restFirestoreDelete(id);
         }
 
         function initSlideshow() {
@@ -723,7 +736,7 @@
 
             fetch(safeUrl, { mode: 'cors' })
                 .then(function(response) {
-                    if (!response.ok) throw new Error('Network response failed: ' + response.status);
+                    if (!response.ok) throw new Error('Blob HTTP Status: ' + response.status);
                     return response.blob();
                 })
                 .then(function(blob) {
