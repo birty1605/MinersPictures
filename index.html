@@ -179,7 +179,7 @@
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
         }
 
-        /* Continuous Ticker Marquee Bar Overlaid at Top of TV Frame */
+        /* Top Screen Ticker Marquee Overlay */
         .tv-marquee-overlay {
             position: absolute;
             top: 0;
@@ -220,11 +220,11 @@
             justify-content: center;
         }
 
-        /* Prevent image cut-off on LG TV screens by using contain */
+        /* Prevent image cut-off on LG TV screens */
         .tv-display-frame {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* Set to contain so full image remains visible without clipping */
+            object-fit: contain;
             display: block;
             background-color: #000000;
         }
@@ -328,7 +328,7 @@
 
     <nav class="nav-tabs">
         <button type="button" class="tab-btn active" id="btn-upload" tabindex="0" onclick="switchTab('upload')">📸 Upload Picture</button>
-        <button type="button" class="tab-btn" id="btn-tv" tabindex="0" onclick="switchTab('tv')">📺 Live View</button>
+        <button type="button" class="tab-btn" id="btn-tv" tabindex="0" onclick="switchTab('tv')">Live View</button>
         <button type="button" class="tab-btn" id="btn-admin" tabindex="0" onclick="switchTab('admin')">🔑 Admin Login</button>
     </nav>
 
@@ -362,7 +362,7 @@
         <!-- TAB 2: LIVE DISPLAY (WITH TOP MARQUEE) -->
         <section id="tab-tv" class="tab-content">
             <div class="tv-wrapper">
-                <!-- Top Screen Continuous Running Marquee Banner -->
+                <!-- Top Marquee Ticker -->
                 <div class="tv-marquee-overlay">
                     <div class="marquee-content" id="tvMarqueeText">Welcome to The Miners Arms! Enjoy your stay.</div>
                 </div>
@@ -372,7 +372,7 @@
                     <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
                 </div>
                 <div class="tv-hud">
-                    <div class="tv-badge"><div class="live-dot"></div> THE MINERS ARMS LIVE TV</div>
+                    <div class="tv-badge"><div class="live-dot"></div> LIVE VIEW</div>
                     <div id="tvCounter" class="tv-badge" style="font-size: 1rem;">0 / 0 Slides</div>
                 </div>
             </div>
@@ -522,6 +522,45 @@
             reader.readAsDataURL(file);
         }
 
+        /* Fast Client-Side Image Pre-Compression (Canvas) */
+        function compressImage(file, maxDimension, quality, callback) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    var width = img.width;
+                    var height = img.height;
+
+                    if (width > height) {
+                        if (width > maxDimension) {
+                            height = Math.round((height * maxDimension) / width);
+                            width = maxDimension;
+                        }
+                    } else {
+                        if (height > maxDimension) {
+                            width = Math.round((width * maxDimension) / height);
+                            height = maxDimension;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(function(blob) {
+                        callback(blob || file);
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = function() { callback(file); };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() { callback(file); };
+            reader.readAsDataURL(file);
+        }
+
         function xhrRequest(method, url, data, callback) {
             var xhr = new XMLHttpRequest();
             xhr.open(method, url, true);
@@ -556,35 +595,42 @@
 
             var submitBtn = document.getElementById('submitBtn');
             if (submitBtn) {
-                submitBtn.innerText = 'Uploading to Cloudinary...';
+                submitBtn.innerText = 'Compressing image for fast upload...';
                 submitBtn.disabled = true;
             }
 
-            var formData = new FormData();
-            formData.append('file', selectedFileObject);
-            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload', true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        var data = JSON.parse(xhr.responseText);
-                        if (!data.secure_url) {
-                            uploadFailed('Cloudinary error');
-                            return;
-                        }
-                        restFirestoreAdd({
-                            dataUrl: data.secure_url,
-                            status: 'pending',
-                            timestamp: Date.now()
-                        });
-                    } else {
-                        uploadFailed('Upload failed status: ' + xhr.status);
-                    }
+            // Perform fast browser compression (Max 1920px resolution, 82% quality)
+            compressImage(selectedFileObject, 1920, 0.82, function(compressedBlob) {
+                if (submitBtn) {
+                    submitBtn.innerText = 'Uploading picture...';
                 }
-            };
-            xhr.send(formData);
+
+                var formData = new FormData();
+                formData.append('file', compressedBlob, 'upload.jpg');
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            var data = JSON.parse(xhr.responseText);
+                            if (!data.secure_url) {
+                                uploadFailed('Cloudinary error');
+                                return;
+                            }
+                            restFirestoreAdd({
+                                dataUrl: data.secure_url,
+                                status: 'pending',
+                                timestamp: Date.now()
+                            });
+                        } else {
+                            uploadFailed('Upload failed status: ' + xhr.status);
+                        }
+                    }
+                };
+                xhr.send(formData);
+            });
 
             function uploadFailed(msg) {
                 showAlert('uploadAlert', msg, 'error');
