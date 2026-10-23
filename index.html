@@ -39,6 +39,7 @@
         .tab-btn:focus,
         button:focus,
         input:focus,
+        textarea:focus,
         .upload-dropzone:focus {
             outline: 6px solid #FFFF00 !important;
             outline-offset: 4px !important;
@@ -163,7 +164,7 @@
             object-fit: contain;
         }
 
-        /* LG WebOS Fullscreen Responsive TV Frame Layout - Expanded to Fill Screen */
+        /* LG WebOS Fullscreen Responsive TV Frame Layout */
         .tv-wrapper {
             background-color: #000000;
             border-radius: var(--radius-lg);
@@ -178,6 +179,36 @@
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
         }
 
+        /* Continuous Ticker Marquee Bar Overlaid at Top of TV Frame */
+        .tv-marquee-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            border-bottom: 3px solid var(--gold-metallic);
+            padding: 0.8rem 0;
+            overflow: hidden;
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        .marquee-content {
+            display: inline-block;
+            padding-left: 100%;
+            font-family: 'Cinzel', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--gold-primary);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            0%   { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
+
         .tv-screen { 
             width: 100%; 
             height: 100%; 
@@ -189,10 +220,11 @@
             justify-content: center;
         }
 
+        /* Prevent image cut-off on LG TV screens by using contain */
         .tv-display-frame {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* Expanded to fill entire screen bounds */
+            object-fit: contain; /* Set to contain so full image remains visible without clipping */
             display: block;
             background-color: #000000;
         }
@@ -296,7 +328,7 @@
 
     <nav class="nav-tabs">
         <button type="button" class="tab-btn active" id="btn-upload" tabindex="0" onclick="switchTab('upload')">📸 Upload Picture</button>
-        <button type="button" class="tab-btn" id="btn-tv" tabindex="0" onclick="switchTab('tv')">📺 Live TV Slideshow</button>
+        <button type="button" class="tab-btn" id="btn-tv" tabindex="0" onclick="switchTab('tv')">📺 Live View</button>
         <button type="button" class="tab-btn" id="btn-admin" tabindex="0" onclick="switchTab('admin')">🔑 Admin Login</button>
     </nav>
 
@@ -327,9 +359,14 @@
             </div>
         </section>
 
-        <!-- TAB 2: TV SLIDESHOW -->
+        <!-- TAB 2: LIVE DISPLAY (WITH TOP MARQUEE) -->
         <section id="tab-tv" class="tab-content">
             <div class="tv-wrapper">
+                <!-- Top Screen Continuous Running Marquee Banner -->
+                <div class="tv-marquee-overlay">
+                    <div class="marquee-content" id="tvMarqueeText">Welcome to The Miners Arms! Enjoy your stay.</div>
+                </div>
+
                 <div class="tv-screen" id="tvScreen">
                     <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting to Live Feed...</p>
                     <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
@@ -363,6 +400,17 @@
             </div>
 
             <div id="adminDashboard" style="display: none;">
+                <!-- Marquee Settings Panel inside Admin -->
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h2>Manage Live View Marquee</h2>
+                    <div id="marqueeAlert" class="alert-msg"></div>
+                    <div class="form-group">
+                        <label class="form-label">Marquee Banner Message</label>
+                        <input type="text" id="marqueeTextInput" class="form-input" placeholder="Type marquee banner text..." tabindex="0">
+                    </div>
+                    <button type="button" class="btn" tabindex="0" onclick="saveMarqueeText()">📢 Update Live Marquee Text</button>
+                </div>
+
                 <div class="card" style="margin-bottom: 2rem;">
                     <h2>Pending Moderation Queue</h2>
                     <div id="pendingQueue" class="admin-grid"></div>
@@ -412,8 +460,10 @@
 
             if (tabId === 'tv') {
                 initRestSync();
+                fetchMarqueeText();
             } else if (tabId === 'admin' && isAdminLoggedIn) {
                 renderAdminQueues();
+                fetchMarqueeText();
             }
         };
 
@@ -427,10 +477,15 @@
         var pollInterval = null;
         var isAdminLoggedIn = false;
         var cachedPhotos = [];
+        var currentMarqueeText = "Welcome to The Miners Arms! Enjoy your stay.";
 
         try {
             initRestSync();
-            pollInterval = setInterval(initRestSync, 10000);
+            fetchMarqueeText();
+            pollInterval = setInterval(function() {
+                initRestSync();
+                fetchMarqueeText();
+            }, 10000);
         } catch (err) {
             console.error(err);
         }
@@ -550,9 +605,49 @@
                 document.getElementById('adminLoginCard').style.display = 'none';
                 document.getElementById('adminDashboard').style.display = 'block';
                 renderAdminQueues();
+                fetchMarqueeText();
             } else {
                 showAlert('loginAlert', 'Invalid credentials.', 'error');
             }
+        }
+
+        function fetchMarqueeText() {
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/settings/marquee';
+            xhrRequest('GET', url, null, function(err, data) {
+                if (!err && data && data.fields && data.fields.text) {
+                    currentMarqueeText = data.fields.text.stringValue;
+                }
+                var marqueeEl = document.getElementById('tvMarqueeText');
+                if (marqueeEl) marqueeEl.innerText = currentMarqueeText;
+
+                var marqueeInput = document.getElementById('marqueeTextInput');
+                if (marqueeInput && document.activeElement !== marqueeInput) {
+                    marqueeInput.value = currentMarqueeText;
+                }
+            });
+        }
+
+        function saveMarqueeText() {
+            var marqueeInput = document.getElementById('marqueeTextInput');
+            if (!marqueeInput) return;
+            var textVal = marqueeInput.value.trim();
+            if (!textVal) return;
+
+            var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/settings/marquee';
+            var payload = {
+                fields: {
+                    text: { stringValue: textVal }
+                }
+            };
+
+            xhrRequest('PATCH', url, payload, function(err) {
+                if (!err) {
+                    showAlert('marqueeAlert', 'Marquee banner updated successfully!', 'success');
+                    fetchMarqueeText();
+                } else {
+                    showAlert('marqueeAlert', 'Failed to update marquee text.', 'error');
+                }
+            });
         }
 
         function initRestSync() {
