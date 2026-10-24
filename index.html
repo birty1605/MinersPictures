@@ -35,12 +35,13 @@
             flex-direction: column;
         }
 
-        /* High-Visibility Focus Outline for TV D-Pad Remote */
+        /* High-Visibility Focus Outline for TV D-Pad Remote Navigation */
         .tab-btn:focus,
         button:focus,
         input:focus,
         textarea:focus,
-        .upload-dropzone:focus {
+        .upload-dropzone:focus,
+        .action-btn:focus {
             outline: 6px solid #FFFF00 !important;
             outline-offset: 4px !important;
             background-color: #FFFF00 !important;
@@ -164,49 +165,42 @@
             object-fit: contain;
         }
 
-        /* LG WebOS Fullscreen Responsive TV Frame Layout */
+        /* Top Screen Ticker Banner - Positioned STRICTLY ABOVE poster */
+        .tv-marquee-standalone {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid var(--gold-metallic);
+            border-radius: var(--radius-md);
+            padding: 0.8rem 0;
+            overflow: hidden;
+            white-space: nowrap;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .marquee-content {
+            display: inline-block;
+            font-family: 'Cinzel', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--gold-primary);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+            will-change: transform;
+        }
+
+        /* Responsive TV Display Container */
         .tv-wrapper {
             background-color: #000000;
             border-radius: var(--radius-lg);
             overflow: hidden;
             border: 4px solid var(--gold-metallic);
             position: relative;
-            height: 78vh;
+            height: 70vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             box-shadow: 0 0 50px rgba(0,0,0,0.9);
-        }
-
-        /* Top Screen Ticker Marquee Overlay */
-        .tv-marquee-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            border-bottom: 3px solid var(--gold-metallic);
-            padding: 0.8rem 0;
-            overflow: hidden;
-            white-space: nowrap;
-            z-index: 20;
-        }
-
-        .marquee-content {
-            display: inline-block;
-            padding-left: 100%;
-            font-family: 'Cinzel', serif;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--gold-primary);
-            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
-            animation: marquee 20s linear infinite;
-        }
-
-        @keyframes marquee {
-            0%   { transform: translate(0, 0); }
-            100% { transform: translate(-100%, 0); }
         }
 
         .tv-screen { 
@@ -229,19 +223,17 @@
             background-color: #000000;
         }
 
-        .tv-hud {
-            position: absolute;
-            bottom: 1.5rem;
-            left: 1.5rem;
-            right: 1.5rem;
-            display: flex;
-            justify-content: space-between;
+        /* External Controls & Status HUD Below Poster */
+        .tv-controls-bar { 
+            margin-top: 1.25rem; 
+            display: flex; 
+            justify-content: space-between; 
             align-items: center;
-            background: rgba(0, 0, 0, 0.85);
+            gap: 1rem; 
+            background-color: var(--surface-color);
             padding: 1rem 1.5rem;
             border-radius: var(--radius-md);
-            border: 2px solid var(--gold-metallic);
-            z-index: 10;
+            border: 2px solid var(--border-color);
         }
 
         .tv-badge {
@@ -262,7 +254,6 @@
             box-shadow: 0 0 10px var(--accent-green);
         }
 
-        .tv-controls-bar { margin-top: 1.25rem; display: flex; justify-content: center; gap: 1rem; }
         .login-box { max-width: 450px; margin: 2rem auto; text-align: left; }
         .form-group { margin-bottom: 1.5rem; }
         .form-label { display: block; font-size: 1.1rem; color: var(--text-main); font-weight: 700; margin-bottom: 0.5rem; }
@@ -291,6 +282,7 @@
         .photo-actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
         .action-btn { flex: 1; padding: 0.75rem; border-radius: 6px; font-weight: 800; cursor: pointer; border: 2px solid #fff; font-size: 1rem; }
         .btn-approve { background-color: var(--accent-green); color: #000; }
+        .btn-archive { background-color: var(--gold-dark); color: #000; }
         .btn-reject { background-color: var(--accent-red); color: #fff; }
 
         .alert-msg { padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; display: none; font-weight: 700; font-size: 1.1rem; }
@@ -359,24 +351,25 @@
             </div>
         </section>
 
-        <!-- TAB 2: LIVE DISPLAY (WITH TOP MARQUEE) -->
+        <!-- TAB 2: LIVE DISPLAY (SEPARATED MARQUEE AND CONTROLS FOR LG TV) -->
         <section id="tab-tv" class="tab-content">
-            <div class="tv-wrapper">
-                <!-- Top Marquee Ticker -->
-                <div class="tv-marquee-overlay">
-                    <div class="marquee-content" id="tvMarqueeText">Welcome to The Miners Arms! Enjoy your stay.</div>
-                </div>
+            <!-- Top Standalone Ticker (Above Poster) -->
+            <div class="tv-marquee-standalone" id="marqueeContainer">
+                <div class="marquee-content" id="tvMarqueeText">Welcome to The Miners Arms! Enjoy your stay.</div>
+            </div>
 
+            <!-- TV Screen Poster Container -->
+            <div class="tv-wrapper">
                 <div class="tv-screen" id="tvScreen">
                     <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting to Live Feed...</p>
                     <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
                 </div>
-                <div class="tv-hud">
-                    <div class="tv-badge"><div class="live-dot"></div> LIVE VIEW</div>
-                    <div id="tvCounter" class="tv-badge" style="font-size: 1rem;">0 / 0 Slides</div>
-                </div>
             </div>
+
+            <!-- Controls and Slide Counter Below Poster Frame -->
             <div class="tv-controls-bar">
+                <div class="tv-badge"><div class="live-dot"></div> LIVE VIEW</div>
+                <div id="tvCounter" class="tv-badge" style="font-size: 1rem;">0 / 0 Slides</div>
                 <button type="button" class="btn btn-secondary" id="fullscreenBtn" tabindex="0" onclick="enterFullscreen()">🖥️ Fullscreen Mode</button>
             </div>
         </section>
@@ -461,6 +454,7 @@
             if (tabId === 'tv') {
                 initRestSync();
                 fetchMarqueeText();
+                startJSMarquee();
             } else if (tabId === 'admin' && isAdminLoggedIn) {
                 renderAdminQueues();
                 fetchMarqueeText();
@@ -478,6 +472,29 @@
         var isAdminLoggedIn = false;
         var cachedPhotos = [];
         var currentMarqueeText = "Welcome to The Miners Arms! Enjoy your stay.";
+
+        /* Robust JS Ticker for LG WebOS Compatibility */
+        var marqueeAnimFrame = null;
+        var marqueePosX = 0;
+
+        function startJSMarquee() {
+            var container = document.getElementById('marqueeContainer');
+            var textElem = document.getElementById('tvMarqueeText');
+            if (!container || !textElem) return;
+
+            if (marqueeAnimFrame) cancelAnimationFrame(marqueeAnimFrame);
+            marqueePosX = container.clientWidth;
+
+            function step() {
+                marqueePosX -= 2.5; // Speed multiplier optimized for TV display
+                if (marqueePosX < -textElem.clientWidth) {
+                    marqueePosX = container.clientWidth;
+                }
+                textElem.style.transform = 'translateX(' + marqueePosX + 'px)';
+                marqueeAnimFrame = requestAnimationFrame(step);
+            }
+            step();
+        }
 
         try {
             initRestSync();
@@ -522,7 +539,7 @@
             reader.readAsDataURL(file);
         }
 
-        /* Fast Client-Side Image Pre-Compression (Canvas) */
+        /* Client-Side Image Pre-Compression (Canvas) for TV performance */
         function compressImage(file, maxDimension, quality, callback) {
             var reader = new FileReader();
             reader.onload = function(e) {
@@ -599,7 +616,6 @@
                 submitBtn.disabled = true;
             }
 
-            // Perform fast browser compression (Max 1920px resolution, 82% quality)
             compressImage(selectedFileObject, 1920, 0.82, function(compressedBlob) {
                 if (submitBtn) {
                     submitBtn.innerText = 'Uploading picture...';
@@ -690,6 +706,7 @@
                 if (!err) {
                     showAlert('marqueeAlert', 'Marquee banner updated successfully!', 'success');
                     fetchMarqueeText();
+                    startJSMarquee();
                 } else {
                     showAlert('marqueeAlert', 'Failed to update marquee text.', 'error');
                 }
@@ -794,13 +811,19 @@
             pendingQ.innerHTML = pending.length === 0 ? '<p style="color:var(--text-muted); text-align:center;">No pending photos.</p>' :
                 pending.map(function(p) {
                     var safeUrl = formatJpgUrl(p.dataUrl);
-                    return '<div class="photo-card"><img src="' + safeUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-approve" tabindex="0" onclick="updatePhotoStatus(\'' + p.id + '\', \'live\')">Approve</button><button class="action-btn btn-reject" tabindex="0" onclick="deletePhoto(\'' + p.id + '\')">Reject</button></div></div></div>';
+                    return '<div class="photo-card"><img src="' + safeUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-approve" tabindex="0" onclick="updatePhotoStatus(\'' + p.id + '\', \'live\')">Approve</button><button class="action-btn btn-reject" tabindex="0" onclick="permanentlyDeletePhoto(\'' + p.id + '\')">Reject</button></div></div></div>';
                 }).join('');
 
             liveQ.innerHTML = live.length === 0 ? '<p style="color:var(--text-muted); text-align:center;">No live photos.</p>' :
                 live.map(function(p) {
                     var safeUrl = formatJpgUrl(p.dataUrl);
-                    return '<div class="photo-card"><img src="' + safeUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-reject" tabindex="0" onclick="deletePhoto(\'' + p.id + '\')">Delete</button></div></div></div>';
+                    return '<div class="photo-card"><img src="' + safeUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-archive" tabindex="0" onclick="updatePhotoStatus(\'' + p.id + '\', \'archived\')">Move to Archive</button></div></div></div>';
+                }).join('');
+
+            archiveQ.innerHTML = archived.length === 0 ? '<p style="color:var(--text-muted); text-align:center;">No archived photos.</p>' :
+                archived.map(function(p) {
+                    var safeUrl = formatJpgUrl(p.dataUrl);
+                    return '<div class="photo-card"><img src="' + safeUrl + '" class="photo-thumb"><div class="photo-info"><div class="photo-actions"><button class="action-btn btn-approve" tabindex="0" onclick="updatePhotoStatus(\'' + p.id + '\', \'live\')">Restore to Live</button><button class="action-btn btn-reject" tabindex="0" onclick="permanentlyDeletePhoto(\'' + p.id + '\')">Delete Permanently</button></div></div></div>';
                 }).join('');
         }
 
@@ -819,8 +842,8 @@
             restFirestoreUpdate(id, updates);
         }
 
-        function deletePhoto(id) {
-            if (!confirm('Delete picture?')) return;
+        function permanentlyDeletePhoto(id) {
+            if (!confirm('Permanently delete this picture?')) return;
             restFirestoreDelete(id);
         }
 
@@ -871,10 +894,10 @@
         }
 
         function enterFullscreen() {
-            var tvEl = document.querySelector('.tv-wrapper');
-            if (!tvEl) return;
-            if (tvEl.requestFullscreen) tvEl.requestFullscreen();
-            else if (tvEl.webkitRequestFullscreen) tvEl.webkitRequestFullscreen();
+            var tvTab = document.getElementById('tab-tv');
+            if (!tvTab) return;
+            if (tvTab.requestFullscreen) tvTab.requestFullscreen();
+            else if (tvTab.webkitRequestFullscreen) tvTab.webkitRequestFullscreen();
         }
 
         function showAlert(elementId, message, type) {
