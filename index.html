@@ -293,6 +293,31 @@
         .alert-error { background: rgba(255, 107, 107, 0.3); color: #ff9999; border: 2px solid var(--accent-red); }
         
         #uploadProgress { font-weight: 700; color: var(--gold-metallic); margin-bottom: 0.75rem; display: none; }
+
+        /* CONSTANT BOTTOM LEFT QR CODE STYLES */
+        .fixed-qr-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 9999;
+            background-color: #FFFFFF;
+            padding: 8px;
+            border-radius: var(--radius-md);
+            border: 3px solid var(--gold-metallic);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 130px;
+            pointer-events: none;
+        }
+
+        .fixed-qr-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -412,6 +437,11 @@
             </div>
         </section>
     </main>
+
+    <!-- CONSTANT BOTTOM LEFT QR CODE WIDGET -->
+    <div class="fixed-qr-container">
+        <img class="fixed-qr-img" src="download.jpeg" alt="Scan to visit website">
+    </div>
 
     <footer>
         &copy; 2026 The Miners Arms. All rights reserved.
