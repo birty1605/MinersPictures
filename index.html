@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Miners Arms - Live TV Photo Display & Hub</title>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
-    
     <style>
         :root {
             --bg-color: #0A0A0A;
@@ -27,7 +24,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             min-height: 100vh;
@@ -35,7 +32,6 @@
             flex-direction: column;
         }
 
-        /* High-Visibility Focus Outline for TV D-Pad Remote Navigation */
         .tab-btn:focus,
         button:focus,
         input:focus,
@@ -53,7 +49,7 @@
         header {
             background-color: var(--surface-color);
             border-bottom: 3px solid var(--gold-metallic);
-            padding: 1.5rem 2rem;
+            padding: 1.25rem 2rem;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -61,11 +57,11 @@
         }
 
         .logo-container { display: flex; align-items: center; gap: 1rem; }
-        .logo-svg { width: 60px; height: 60px; fill: var(--gold-metallic); }
+        .logo-svg { width: 50px; height: 50px; fill: var(--gold-metallic); }
 
         .brand-title {
-            font-family: 'Cinzel', serif;
-            font-size: 2.5rem;
+            font-family: Georgia, serif;
+            font-size: 2.2rem;
             font-weight: 900;
             color: var(--gold-primary);
             letter-spacing: 2px;
@@ -77,7 +73,7 @@
             display: flex;
             gap: 1.25rem;
             background-color: var(--surface-color);
-            padding: 1.25rem;
+            padding: 1rem;
             border-bottom: 2px solid var(--border-color);
             justify-content: center;
             flex-wrap: wrap;
@@ -87,10 +83,9 @@
             background: #333333;
             border: 2px solid var(--gold-metallic);
             color: #FFFFFF;
-            padding: 1rem 2rem;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            padding: 0.85rem 1.75rem;
             font-weight: 700;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             border-radius: var(--radius-md);
             cursor: pointer;
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
@@ -104,7 +99,7 @@
             box-shadow: 0 4px 20px rgba(255, 217, 102, 0.5);
         }
 
-        main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 2rem 1rem; }
+        main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 1.5rem 1rem; }
         
         .tab-content { display: none; }
         .tab-content.active { display: block !important; }
@@ -113,15 +108,15 @@
             background-color: var(--surface-card);
             border: 2px solid var(--border-color);
             border-radius: var(--radius-lg);
-            padding: 2.5rem;
+            padding: 2rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
         }
 
         h2 {
-            font-family: 'Cinzel', serif;
+            font-family: Georgia, serif;
             color: var(--gold-primary);
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
+            font-size: 1.6rem;
+            margin-bottom: 1.25rem;
             text-align: center;
             text-shadow: 0 2px 4px rgba(0,0,0,0.8);
         }
@@ -129,23 +124,23 @@
         .upload-dropzone {
             border: 3px dashed var(--gold-metallic);
             border-radius: var(--radius-lg);
-            padding: 3.5rem 2rem;
+            padding: 2.5rem 1.5rem;
             text-align: center;
             background: rgba(255, 217, 102, 0.05);
             cursor: pointer;
         }
 
-        .upload-icon { font-size: 3.5rem; color: var(--gold-metallic); margin-bottom: 1rem; }
+        .upload-icon { font-size: 3rem; color: var(--gold-metallic); margin-bottom: 0.75rem; }
 
         .btn {
             background: linear-gradient(135deg, var(--gold-metallic), var(--gold-dark));
             color: #000000;
             font-weight: 800;
             border: 2px solid #FFFFFF;
-            padding: 1rem 2.5rem;
+            padding: 0.85rem 2rem;
             border-radius: var(--radius-md);
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
 
@@ -157,21 +152,32 @@
 
         input[type="file"] { display: none; }
         .preview-container { margin-top: 1.5rem; display: none; text-align: center; }
-        .preview-img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: var(--radius-md);
-            border: 2px solid var(--gold-metallic);
-            object-fit: contain;
+        
+        .preview-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            max-height: 220px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding: 5px;
         }
 
-        /* Top Screen Ticker Banner - Positioned STRICTLY ABOVE poster */
+        .preview-thumb {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--gold-metallic);
+        }
+
         .tv-marquee-standalone {
             width: 100%;
             background: rgba(0, 0, 0, 0.95);
             border: 3px solid var(--gold-metallic);
             border-radius: var(--radius-md);
-            padding: 0.8rem 0;
+            padding: 0.75rem 0;
             overflow: hidden;
             white-space: nowrap;
             margin-bottom: 1rem;
@@ -180,22 +186,21 @@
 
         .marquee-content {
             display: inline-block;
-            font-family: 'Cinzel', serif;
-            font-size: 1.8rem;
+            font-family: Georgia, serif;
+            font-size: 1.6rem;
             font-weight: 700;
             color: var(--gold-primary);
             text-shadow: 0 2px 4px rgba(0,0,0,0.9);
             will-change: transform;
         }
 
-        /* Responsive TV Display Container */
         .tv-wrapper {
             background-color: #000000;
             border-radius: var(--radius-lg);
             overflow: hidden;
             border: 4px solid var(--gold-metallic);
             position: relative;
-            height: 70vh;
+            height: 68vh;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -214,7 +219,6 @@
             justify-content: center;
         }
 
-        /* Prevent image cut-off on LG TV screens */
         .tv-display-frame {
             width: 100%;
             height: 100%;
@@ -223,22 +227,21 @@
             background-color: #000000;
         }
 
-        /* External Controls & Status HUD Below Poster */
         .tv-controls-bar { 
-            margin-top: 1.25rem; 
+            margin-top: 1rem; 
             display: flex; 
             justify-content: space-between; 
             align-items: center;
             gap: 1rem; 
             background-color: var(--surface-color);
-            padding: 1rem 1.5rem;
+            padding: 0.85rem 1.25rem;
             border-radius: var(--radius-md);
             border: 2px solid var(--border-color);
         }
 
         .tv-badge {
-            font-family: 'Cinzel', serif;
-            font-size: 1.1rem;
+            font-family: Georgia, serif;
+            font-size: 1rem;
             font-weight: 700;
             color: var(--gold-primary);
             display: flex;
@@ -247,27 +250,27 @@
         }
 
         .live-dot {
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             background-color: var(--accent-green);
             border-radius: 50%;
             box-shadow: 0 0 10px var(--accent-green);
         }
 
-        .login-box { max-width: 450px; margin: 2rem auto; text-align: left; }
-        .form-group { margin-bottom: 1.5rem; }
-        .form-label { display: block; font-size: 1.1rem; color: var(--text-main); font-weight: 700; margin-bottom: 0.5rem; }
+        .login-box { max-width: 450px; margin: 1.5rem auto; text-align: left; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label { display: block; font-size: 1rem; color: var(--text-main); font-weight: 700; margin-bottom: 0.4rem; }
         .form-input {
             width: 100%;
-            padding: 1rem;
+            padding: 0.85rem;
             background-color: var(--bg-color);
             border: 2px solid var(--border-color);
             border-radius: var(--radius-md);
             color: var(--text-main);
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
 
-        .admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.25rem; margin-top: 1.25rem; }
         .photo-card {
             background-color: var(--surface-color);
             border: 2px solid var(--border-color);
@@ -277,28 +280,19 @@
             flex-direction: column;
         }
 
-        .photo-thumb { width: 100%; height: 180px; object-fit: cover; }
-        .photo-info { padding: 1.25rem; }
-        .photo-actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
-        .action-btn { flex: 1; padding: 0.75rem; border-radius: 6px; font-weight: 800; cursor: pointer; border: 2px solid #fff; font-size: 1rem; }
+        .photo-thumb { width: 100%; height: 160px; object-fit: cover; }
+        .photo-info { padding: 1rem; }
+        .photo-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .action-btn { flex: 1; padding: 0.6rem; border-radius: 6px; font-weight: 800; cursor: pointer; border: 2px solid #fff; font-size: 0.9rem; }
         .btn-approve { background-color: var(--accent-green); color: #000; }
         .btn-archive { background-color: var(--gold-dark); color: #000; }
         .btn-reject { background-color: var(--accent-red); color: #fff; }
 
-        .alert-msg { padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; display: none; font-weight: 700; font-size: 1.1rem; }
+        .alert-msg { padding: 0.85rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; display: none; font-weight: 700; font-size: 1rem; }
         .alert-success { background: rgba(76, 209, 55, 0.3); color: #76ff6b; border: 2px solid var(--accent-green); }
         .alert-error { background: rgba(255, 107, 107, 0.3); color: #ff9999; border: 2px solid var(--accent-red); }
-
-        footer {
-            background-color: var(--surface-color);
-            border-top: 2px solid var(--border-color);
-            text-align: center;
-            padding: 1.5rem;
-            font-size: 1rem;
-            color: var(--text-main);
-            font-weight: 700;
-            margin-top: auto;
-        }
+        
+        #uploadProgress { font-weight: 700; color: var(--gold-metallic); margin-bottom: 0.75rem; display: none; }
     </style>
 </head>
 <body>
@@ -319,57 +313,55 @@
     </header>
 
     <nav class="nav-tabs">
-        <button type="button" class="tab-btn active" id="btn-upload" tabindex="0" onclick="switchTab('upload')">📸 Upload Picture</button>
+        <button type="button" class="tab-btn active" id="btn-upload" tabindex="0" onclick="switchTab('upload')">📸 Upload Pictures</button>
         <button type="button" class="tab-btn" id="btn-tv" tabindex="0" onclick="switchTab('tv')">Live View</button>
         <button type="button" class="tab-btn" id="btn-admin" tabindex="0" onclick="switchTab('admin')">🔑 Admin Login</button>
     </nav>
 
     <main>
-        <!-- TAB 1: UPLOAD -->
+        <!-- TAB 1: BATCH UPLOAD -->
         <section id="tab-upload" class="tab-content active">
             <div class="card" style="max-width: 650px; margin: 0 auto;">
                 <h2>Share Your Memories</h2>
-                <p style="text-align: center; color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">Upload your favorite moments to be reviewed and displayed on live screens.</p>
+                <p style="text-align: center; color: var(--text-muted); font-size: 1rem; margin-bottom: 1.5rem;">Select multiple photos to display on live pub screens.</p>
                 
                 <div id="uploadAlert" class="alert-msg"></div>
 
-                <form id="uploadForm" onsubmit="handleImageUpload(event)">
+                <form id="uploadForm" onsubmit="handleBatchUpload(event)">
                     <div class="upload-dropzone" id="dropzoneBox" tabindex="0" onclick="triggerFileInput()">
                         <div class="upload-icon">📷</div>
-                        <p style="font-weight: 700; font-size: 1.2rem;">Click or Press OK to browse picture</p>
-                        <p style="color: var(--text-muted); font-size: 1rem; margin-top:0.5rem;">Supports JPG, PNG, WEBP</p>
-                        <input type="file" id="fileInput" accept="image/*" onchange="previewFile(event)">
+                        <p style="font-weight: 700; font-size: 1.1rem;">Click to select photos (Multiple allowed)</p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top:0.4rem;">Supports JPG, PNG, WEBP</p>
+                        <input type="file" id="fileInput" accept="image/*" multiple onchange="previewFiles(event)">
                     </div>
 
                     <div id="previewBox" class="preview-container">
-                        <img id="imagePreview" class="preview-img" alt="Preview">
-                        <div style="margin-top: 1.5rem;">
-                            <button type="submit" class="btn" id="submitBtn" tabindex="0">🚀 Submit Picture for Approval</button>
+                        <div class="preview-grid" id="previewGrid"></div>
+                        <div id="uploadProgress">Processing 0 / 0...</div>
+                        <div>
+                            <button type="submit" class="btn" id="submitBtn" tabindex="0">🚀 Submit All Pictures for Approval</button>
                         </div>
                     </div>
                 </form>
             </div>
         </section>
 
-        <!-- TAB 2: LIVE DISPLAY (SEPARATED MARQUEE AND CONTROLS FOR LG TV) -->
+        <!-- TAB 2: LIVE DISPLAY -->
         <section id="tab-tv" class="tab-content">
-            <!-- Top Standalone Ticker (Above Poster) -->
             <div class="tv-marquee-standalone" id="marqueeContainer">
                 <div class="marquee-content" id="tvMarqueeText">Welcome to The Miners Arms! Enjoy your stay.</div>
             </div>
 
-            <!-- TV Screen Poster Container -->
             <div class="tv-wrapper">
                 <div class="tv-screen" id="tvScreen">
-                    <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: 'Cinzel', serif;">Connecting to Live Feed...</p>
+                    <p id="tvStatusMsg" style="font-size: 1.2rem; color: var(--text-muted); font-family: Georgia, serif;">Connecting to Live Feed...</p>
                     <img id="tvActiveImg" class="tv-display-frame" style="display:none;" alt="Live TV Frame" />
                 </div>
             </div>
 
-            <!-- Controls and Slide Counter Below Poster Frame -->
             <div class="tv-controls-bar">
                 <div class="tv-badge"><div class="live-dot"></div> LIVE VIEW</div>
-                <div id="tvCounter" class="tv-badge" style="font-size: 1rem;">0 / 0 Slides</div>
+                <div id="tvCounter" class="tv-badge" style="font-size: 0.95rem;">0 / 0 Slides</div>
                 <button type="button" class="btn btn-secondary" id="fullscreenBtn" tabindex="0" onclick="enterFullscreen()">🖥️ Fullscreen Mode</button>
             </div>
         </section>
@@ -393,8 +385,7 @@
             </div>
 
             <div id="adminDashboard" style="display: none;">
-                <!-- Marquee Settings Panel inside Admin -->
-                <div class="card" style="margin-bottom: 2rem;">
+                <div class="card" style="margin-bottom: 1.5rem;">
                     <h2>Manage Live View Marquee</h2>
                     <div id="marqueeAlert" class="alert-msg"></div>
                     <div class="form-group">
@@ -404,12 +395,12 @@
                     <button type="button" class="btn" tabindex="0" onclick="saveMarqueeText()">📢 Update Live Marquee Text</button>
                 </div>
 
-                <div class="card" style="margin-bottom: 2rem;">
+                <div class="card" style="margin-bottom: 1.5rem;">
                     <h2>Pending Moderation Queue</h2>
                     <div id="pendingQueue" class="admin-grid"></div>
                 </div>
 
-                <div class="card" style="margin-bottom: 2rem;">
+                <div class="card" style="margin-bottom: 1.5rem;">
                     <h2>Live Active Display Photos</h2>
                     <div id="liveQueue" class="admin-grid"></div>
                 </div>
@@ -427,6 +418,23 @@
     </footer>
 
     <script>
+        var PROJECT_ID = "minerspictures";
+        var CLOUDINARY_CLOUD_NAME = 'vju0scal';
+        var CLOUDINARY_UPLOAD_PRESET = 'miners_preset';
+
+        var selectedFiles = [];
+        var slideshowInterval = null;
+        var pollInterval = null;
+        var isAdminLoggedIn = false;
+        var cachedPhotos = [];
+        var shuffledDeck = [];
+        var currentSlideIndex = 0;
+        var knownLivePhotoIds = {};
+        var currentMarqueeText = "Welcome to The Miners Arms! Enjoy your stay.";
+
+        var marqueeAnimFrame = null;
+        var marqueePosX = 0;
+
         window.switchTab = function(tabId) {
             var contents = document.querySelectorAll('.tab-content');
             for (var i = 0; i < contents.length; i++) {
@@ -461,22 +469,6 @@
             }
         };
 
-        var PROJECT_ID = "minerspictures";
-        var CLOUDINARY_CLOUD_NAME = 'vju0scal';
-        var CLOUDINARY_UPLOAD_PRESET = 'miners_preset';
-
-        var selectedFileObject = null;
-        var currentSlideIndex = 0;
-        var slideshowInterval = null;
-        var pollInterval = null;
-        var isAdminLoggedIn = false;
-        var cachedPhotos = [];
-        var currentMarqueeText = "Welcome to The Miners Arms! Enjoy your stay.";
-
-        /* Robust JS Ticker for LG WebOS Compatibility */
-        var marqueeAnimFrame = null;
-        var marqueePosX = 0;
-
         function startJSMarquee() {
             var container = document.getElementById('marqueeContainer');
             var textElem = document.getElementById('tvMarqueeText');
@@ -486,7 +478,7 @@
             marqueePosX = container.clientWidth;
 
             function step() {
-                marqueePosX -= 2.5; // Speed multiplier optimized for TV display
+                marqueePosX -= 2.5;
                 if (marqueePosX < -textElem.clientWidth) {
                     marqueePosX = container.clientWidth;
                 }
@@ -521,25 +513,32 @@
             if (fileInput) fileInput.click();
         }
 
-        function previewFile(event) {
-            var file = event.target.files[0];
-            if (!file) return;
+        function previewFiles(event) {
+            var files = event.target.files;
+            if (!files || files.length === 0) return;
 
-            selectedFileObject = file;
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var previewImg = document.getElementById('imagePreview');
-                var previewBox = document.getElementById('previewBox');
-                if (previewImg && previewBox) {
-                    previewImg.src = e.target.result;
-                    previewBox.style.display = 'block';
-                    document.getElementById('submitBtn').focus();
-                }
-            };
-            reader.readAsDataURL(file);
+            selectedFiles = Array.prototype.slice.call(files);
+            var previewGrid = document.getElementById('previewGrid');
+            var previewBox = document.getElementById('previewBox');
+            if (!previewGrid || !previewBox) return;
+
+            previewGrid.innerHTML = '';
+            previewBox.style.display = 'block';
+
+            selectedFiles.forEach(function(file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'preview-thumb';
+                    previewGrid.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            document.getElementById('submitBtn').focus();
         }
 
-        /* Client-Side Image Pre-Compression (Canvas) for TV performance */
         function compressImage(file, maxDimension, quality, callback) {
             var reader = new FileReader();
             reader.onload = function(e) {
@@ -603,58 +602,72 @@
             }
         }
 
-        function handleImageUpload(e) {
+        function handleBatchUpload(e) {
             e.preventDefault();
-            if (!selectedFileObject) {
-                showAlert('uploadAlert', 'Please select a picture first.', 'error');
+            if (!selectedFiles || selectedFiles.length === 0) {
+                showAlert('uploadAlert', 'Please select picture(s) first.', 'error');
                 return;
             }
 
             var submitBtn = document.getElementById('submitBtn');
-            if (submitBtn) {
-                submitBtn.innerText = 'Compressing image for fast upload...';
-                submitBtn.disabled = true;
-            }
+            var progressEl = document.getElementById('uploadProgress');
+            if (submitBtn) submitBtn.disabled = true;
+            if (progressEl) progressEl.style.display = 'block';
 
-            compressImage(selectedFileObject, 1920, 0.82, function(compressedBlob) {
-                if (submitBtn) {
-                    submitBtn.innerText = 'Uploading picture...';
-                }
+            var total = selectedFiles.length;
+            var currentIdx = 0;
 
-                var formData = new FormData();
-                formData.append('file', compressedBlob, 'upload.jpg');
-                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload', true);
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status === 200) {
-                            var data = JSON.parse(xhr.responseText);
-                            if (!data.secure_url) {
-                                uploadFailed('Cloudinary error');
-                                return;
-                            }
-                            restFirestoreAdd({
-                                dataUrl: data.secure_url,
-                                status: 'pending',
-                                timestamp: Date.now()
-                            });
-                        } else {
-                            uploadFailed('Upload failed status: ' + xhr.status);
-                        }
+            function processNext() {
+                if (currentIdx >= total) {
+                    if (submitBtn) {
+                        submitBtn.innerText = '🚀 Submit All Pictures for Approval';
+                        submitBtn.disabled = false;
                     }
-                };
-                xhr.send(formData);
-            });
-
-            function uploadFailed(msg) {
-                showAlert('uploadAlert', msg, 'error');
-                if (submitBtn) {
-                    submitBtn.innerText = '🚀 Submit Picture for Approval';
-                    submitBtn.disabled = false;
+                    if (progressEl) progressEl.style.display = 'none';
+                    showAlert('uploadAlert', 'All ' + total + ' pictures uploaded successfully! Awaiting review.', 'success');
+                    document.getElementById('uploadForm').reset();
+                    document.getElementById('previewBox').style.display = 'none';
+                    document.getElementById('previewGrid').innerHTML = '';
+                    selectedFiles = [];
+                    initRestSync();
+                    return;
                 }
+
+                if (progressEl) progressEl.innerText = 'Uploading picture ' + (currentIdx + 1) + ' of ' + total + '...';
+
+                compressImage(selectedFiles[currentIdx], 1920, 0.80, function(compressedBlob) {
+                    var formData = new FormData();
+                    formData.append('file', compressedBlob, 'upload.jpg');
+                    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD_NAME + '/image/upload', true);
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                var data = JSON.parse(xhr.responseText);
+                                if (data && data.secure_url) {
+                                    restFirestoreAdd({
+                                        dataUrl: data.secure_url,
+                                        status: 'pending',
+                                        timestamp: Date.now() + currentIdx
+                                    }, function() {
+                                        currentIdx++;
+                                        processNext();
+                                    });
+                                } else {
+                                    currentIdx++; processNext();
+                                }
+                            } else {
+                                currentIdx++; processNext();
+                            }
+                        }
+                    };
+                    xhr.send(formData);
+                });
             }
+
+            processNext();
         }
 
         function handleAdminLogin(e) {
@@ -696,11 +709,7 @@
             if (!textVal) return;
 
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/settings/marquee';
-            var payload = {
-                fields: {
-                    text: { stringValue: textVal }
-                }
-            };
+            var payload = { fields: { text: { stringValue: textVal } } };
 
             xhrRequest('PATCH', url, payload, function(err) {
                 if (!err) {
@@ -711,6 +720,17 @@
                     showAlert('marqueeAlert', 'Failed to update marquee text.', 'error');
                 }
             });
+        }
+
+        function shuffleArray(array) {
+            var arr = array.slice();
+            for (var i = arr.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+            return arr;
         }
 
         function initRestSync() {
@@ -739,12 +759,79 @@
 
                 var tvTab = document.getElementById('tab-tv');
                 if (tvTab && tvTab.classList.contains('active')) {
-                    initSlideshow();
+                    syncLiveSlideshow();
                 }
             });
         }
 
-        function restFirestoreAdd(photoObj) {
+        function syncLiveSlideshow() {
+            var livePhotos = cachedPhotos.filter(function(p) { return p.status === 'live'; });
+            var msg = document.getElementById('tvStatusMsg');
+            var counter = document.getElementById('tvCounter');
+            var displayImg = document.getElementById('tvActiveImg');
+
+            if (livePhotos.length === 0) {
+                if (slideshowInterval) clearInterval(slideshowInterval);
+                if (msg) {
+                    msg.innerText = "No live pictures available yet.";
+                    msg.style.display = "block";
+                }
+                if (displayImg) displayImg.style.display = "none";
+                if (counter) counter.innerText = '0 / 0 Slides';
+                shuffledDeck = [];
+                knownLivePhotoIds = {};
+                return;
+            }
+
+            if (msg) msg.style.display = "none";
+
+            var newAdditions = [];
+            livePhotos.forEach(function(photo) {
+                if (!knownLivePhotoIds[photo.id]) {
+                    newAdditions.push(photo);
+                    knownLivePhotoIds[photo.id] = true;
+                }
+            });
+
+            if (shuffledDeck.length === 0) {
+                shuffledDeck = shuffleArray(livePhotos);
+                currentSlideIndex = 0;
+                startSlideshowLoop();
+            } else if (newAdditions.length > 0) {
+                newAdditions.forEach(function(newPhoto) {
+                    shuffledDeck.unshift(newPhoto);
+                });
+                currentSlideIndex = 0;
+                loadPhotoToTv(shuffledDeck[0].dataUrl, function() {
+                    if (counter) counter.innerText = 'Slide 1 / ' + shuffledDeck.length;
+                });
+            }
+        }
+
+        function startSlideshowLoop() {
+            var counter = document.getElementById('tvCounter');
+
+            if (slideshowInterval) clearInterval(slideshowInterval);
+            if (shuffledDeck.length === 0) return;
+
+            loadPhotoToTv(shuffledDeck[currentSlideIndex].dataUrl, function() {
+                if (counter) counter.innerText = 'Slide ' + (currentSlideIndex + 1) + ' / ' + shuffledDeck.length;
+            });
+
+            slideshowInterval = setInterval(function() {
+                if (shuffledDeck.length <= 1) return;
+                currentSlideIndex++;
+                if (currentSlideIndex >= shuffledDeck.length) {
+                    shuffledDeck = shuffleArray(shuffledDeck);
+                    currentSlideIndex = 0;
+                }
+                loadPhotoToTv(shuffledDeck[currentSlideIndex].dataUrl, function() {
+                    if (counter) counter.innerText = 'Slide ' + (currentSlideIndex + 1) + ' / ' + shuffledDeck.length;
+                });
+            }, 6000);
+        }
+
+        function restFirestoreAdd(photoObj, callback) {
             var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/photos';
             var payload = {
                 fields: {
@@ -754,20 +841,7 @@
                 }
             };
             xhrRequest('POST', url, payload, function(err) {
-                var submitBtn = document.getElementById('submitBtn');
-                if (submitBtn) {
-                    submitBtn.innerText = '🚀 Submit Picture for Approval';
-                    submitBtn.disabled = false;
-                }
-                if (!err) {
-                    showAlert('uploadAlert', 'Picture uploaded successfully! Awaiting review.', 'success');
-                    document.getElementById('uploadForm').reset();
-                    document.getElementById('previewBox').style.display = 'none';
-                    selectedFileObject = null;
-                    initRestSync();
-                } else {
-                    showAlert('uploadAlert', 'Database save failed.', 'error');
-                }
+                if (callback) callback(err);
             });
         }
 
@@ -845,40 +919,6 @@
         function permanentlyDeletePhoto(id) {
             if (!confirm('Permanently delete this picture?')) return;
             restFirestoreDelete(id);
-        }
-
-        function initSlideshow() {
-            var livePhotos = cachedPhotos.filter(function(p) { return p.status === 'live'; });
-            var msg = document.getElementById('tvStatusMsg');
-            var counter = document.getElementById('tvCounter');
-            var displayImg = document.getElementById('tvActiveImg');
-
-            if (livePhotos.length === 0) {
-                if (slideshowInterval) clearInterval(slideshowInterval);
-                if (msg) {
-                    msg.innerText = "No live pictures available yet.";
-                    msg.style.display = "block";
-                }
-                if (displayImg) displayImg.style.display = "none";
-                if (counter) counter.innerText = '0 / 0 Slides';
-                return;
-            }
-
-            if (msg) msg.style.display = "none";
-            if (slideshowInterval) clearInterval(slideshowInterval);
-            currentSlideIndex = 0;
-
-            loadPhotoToTv(livePhotos[0].dataUrl, function() {
-                if (counter) counter.innerText = 'Slide 1 / ' + livePhotos.length;
-            });
-
-            slideshowInterval = setInterval(function() {
-                if (livePhotos.length <= 1) return;
-                currentSlideIndex = (currentSlideIndex + 1) % livePhotos.length;
-                loadPhotoToTv(livePhotos[currentSlideIndex].dataUrl, function() {
-                    if (counter) counter.innerText = 'Slide ' + (currentSlideIndex + 1) + ' / ' + livePhotos.length;
-                });
-            }, 6000);
         }
 
         function loadPhotoToTv(url, callback) {
